@@ -35,9 +35,19 @@ def test_detect_candidates_on_reference(tmp_path, proof_recorder):
     data = json.loads(res2.stdout)
     assert 'candidates' in data
     assert len(data['candidates']) >= 1
-    first = data['candidates'][0]
-    assert Path(first['image_crop']).exists()
-    assert Path(first['dxf_path']).exists()
+
+    # Verify one of the candidates closely matches the expected star position
+    expected_bbox = [740, 1230, 480, 480]  # ±10 pixels margin
+    tolerance = 10
+
+    found = False
+    for cand in data['candidates']:
+        bbox = cand.get("bbox", [0, 0, 0, 0])
+        if all(abs(b - e) <= tolerance for b, e in zip(bbox, expected_bbox)):
+            found = True
+            break
+
+    assert found, f"No candidate matched expected bbox {expected_bbox}"
 
     proof_recorder({
         'name': 'test_detect_candidates_on_reference',

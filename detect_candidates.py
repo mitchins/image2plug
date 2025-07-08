@@ -12,6 +12,18 @@ def load_metadata(path: Path):
         return json.load(f)
 
 
+def is_aruco_candidate(img_crop: np.ndarray):
+    try:
+        aruco = cv2.aruco
+        dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+        parameters = aruco.DetectorParameters()
+        detector = aruco.ArucoDetector(dictionary, parameters)
+        corners, ids, _ = detector.detectMarkers(img_crop)
+        return ids is not None and len(ids) > 0
+    except AttributeError:
+        return False
+
+
 def detect_contours(img: np.ndarray):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
@@ -32,6 +44,7 @@ def main():
     parser.add_argument("image", type=Path, help="Input straightened image")
     parser.add_argument("metadata", type=Path, help="Metadata JSON from straighten.py")
     parser.add_argument("output_dir", type=Path, help="Directory to write results")
+    parser.add_argument("--debug", action="store_true", help="Enable debug output")
     args = parser.parse_args()
 
     img = cv2.imread(str(args.image))
@@ -61,6 +74,13 @@ def main():
         y1 = min(y + h + pad, img.shape[0])
 
         crop = img[y0:y1, x0:x1]
+
+        # Check if this is an ArUco marker
+        if is_aruco_candidate(crop):
+            if args.debug:
+                print(f"[DEBUG] Rejected contour {idx} as ArUco marker, bbox {x},{y},{w},{h}")
+            continue
+
         crop_path = args.output_dir / f"candidate_{idx}.png"
         cv2.imwrite(str(crop_path), crop)
 
@@ -77,6 +97,9 @@ def main():
             "bbox": [int(x), int(y), int(w), int(h)],
             "size": size_mm,
         })
+
+        if args.debug:
+            print(f"[DEBUG] Accepted candidate {idx}, bbox {x},{y},{w},{h}, size {size_mm}")
 
     summary = {"candidates": candidates}
     print(json.dumps(summary))

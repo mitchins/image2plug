@@ -26,10 +26,13 @@ img{max-width:300px;}
 <pre>{{ test.phase1 | tojson(indent=2) }}</pre>
 {% for cand in test.phase2.candidates %}
 <div class="candidate">
- <img src="{{ cand.image_crop }}" alt="crop">
- {% if cand.preview_png %}
- <img src="{{ cand.preview_png }}" alt="dxf preview">
+ {% if cand.crop_png %}
+ <img src="{{ cand.crop_png }}" alt="Crop">
  {% endif %}
+ {% if cand.preview_png %}
+ <img src="{{ cand.preview_png }}" alt="DXF Render">
+ {% endif %}
+ <p><a href="{{ cand.dxf_file }}" download>Download DXF</a></p>
  <pre>{{ cand | tojson(indent=2) }}</pre>
 </div>
 {% endfor %}
