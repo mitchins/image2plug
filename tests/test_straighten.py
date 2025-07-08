@@ -3,8 +3,8 @@ import subprocess
 from pathlib import Path
 
 
-def test_straighten(tmp_path):
-    input_img = Path('assets/reference_image.png')
+def test_straighten_when_perfect_us_letter_image(tmp_path):
+    input_img = Path('assets/reference_image_us_letter.png')
     output_img = tmp_path / 'out.png'
     result = subprocess.run(
         ['python', 'straighten.py', str(input_img), str(output_img)],
@@ -17,6 +17,13 @@ def test_straighten(tmp_path):
     assert Path(data['result']['path']).exists()
     size_mm = data['size_mm']
     assert size_mm is not None
-    assert size_mm[0] > 100 and size_mm[1] > 100
 
+    print(f"Detected size: {size_mm[0]} mm × {size_mm[1]} mm")
 
+    # Expected size for US Letter paper (8.5" x 11"), allowing for some margin of error
+    EXPECTED_WIDTH_MM = 216
+    EXPECTED_HEIGHT_MM = 279
+    TOLERANCE_MM = 10  # Allow for framing/cropping and straightening variations
+
+    assert abs(size_mm[0] - EXPECTED_WIDTH_MM) <= TOLERANCE_MM, f"Width {size_mm[0]} mm outside expected range"
+    assert abs(size_mm[1] - EXPECTED_HEIGHT_MM) <= TOLERANCE_MM, f"Height {size_mm[1]} mm outside expected range"
