@@ -2,7 +2,14 @@ import json
 import subprocess
 from pathlib import Path
 
-def test_detect_candidates_on_reference(tmp_path):
+
+def _load_json(text: str):
+    try:
+        return json.loads(text)
+    except Exception:
+        return {}
+
+def test_detect_candidates_on_reference(tmp_path, proof_recorder):
     input_img = Path('assets/reference_image_us_letter.png')
     straightened = tmp_path / 'straightened.png'
     meta_json = tmp_path / 'meta.json'
@@ -15,6 +22,7 @@ def test_detect_candidates_on_reference(tmp_path):
         check=True,
     )
     meta_json.write_text(res1.stdout)
+    phase1 = _load_json(res1.stdout)
 
     # run phase 2
     output_dir = tmp_path / 'candidates'
@@ -30,3 +38,10 @@ def test_detect_candidates_on_reference(tmp_path):
     first = data['candidates'][0]
     assert Path(first['image_crop']).exists()
     assert Path(first['dxf_path']).exists()
+
+    proof_recorder({
+        'name': 'test_detect_candidates_on_reference',
+        'source_image': str(input_img),
+        'phase1': phase1,
+        'phase2': data,
+    })

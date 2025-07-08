@@ -3,3 +3,5 @@ numpy==1.26.4
 Pillow
 pytest
 ezdxf
+jinja2
+matplotlib
