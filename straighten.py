@@ -37,20 +37,20 @@ def detect_page_corners(gray):
 
 def straighten_image(img, marker_size_mm=30.0):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    page_corners = detect_page_corners(gray)
-    width_a = np.linalg.norm(page_corners[2] - page_corners[3])
-    width_b = np.linalg.norm(page_corners[1] - page_corners[0])
-    max_width = int(max(width_a, width_b))
-    height_a = np.linalg.norm(page_corners[1] - page_corners[2])
-    height_b = np.linalg.norm(page_corners[0] - page_corners[3])
-    max_height = int(max(height_a, height_b))
+    height, width = img.shape[:2]
+    page_corners = np.array([
+        [0, 0],
+        [width - 1, 0],
+        [width - 1, height - 1],
+        [0, height - 1]
+    ], dtype="float32")
 
     dst = np.array(
-        [[0, 0], [max_width - 1, 0], [max_width - 1, max_height - 1], [0, max_height - 1]],
+        [[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]],
         dtype="float32",
     )
     M = cv2.getPerspectiveTransform(page_corners, dst)
-    warped = cv2.warpPerspective(img, M, (max_width, max_height))
+    warped = cv2.warpPerspective(img, M, (width, height))
 
     # ArUco marker detection for scale
     gray_warp = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
@@ -66,9 +66,24 @@ def straighten_image(img, marker_size_mm=30.0):
     else:
         notes.append("Aruco marker not detected; size may be inaccurate")
 
+    # Estimate rotation angle from transform matrix
+    angle_rad = np.arctan2(M[1, 0], M[0, 0])
+    rotation_degrees = np.degrees(angle_rad)
+
+    # Estimate overall image scale in mm per pixel
+    if mm_per_pixel is not None:
+        scale_x_mm_per_px = mm_per_pixel
+        scale_y_mm_per_px = mm_per_pixel
+    else:
+        scale_x_mm_per_px = None
+        scale_y_mm_per_px = None
+
     result = {
         "image": warped,
         "mm_per_pixel": mm_per_pixel,
+        "scale_x_mm_per_px": scale_x_mm_per_px,
+        "scale_y_mm_per_px": scale_y_mm_per_px,
+        "rotation_degrees": round(rotation_degrees, 3),
         "notes": notes,
     }
     return result
@@ -109,6 +124,9 @@ def main():
         "result": {
             "path": str(output_path),
             "size_px": list(size_px),
+            "scale_x_mm_per_px": res["scale_x_mm_per_px"],
+            "scale_y_mm_per_px": res["scale_y_mm_per_px"],
+            "rotation_degrees": res["rotation_degrees"],
         },
         "size_mm": size_mm,
         "notes": notes,
