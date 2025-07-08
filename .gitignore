@@ -1,2 +1,2 @@
-# Ignore generated assets
+# Standard python stuff
 __pycache__/
