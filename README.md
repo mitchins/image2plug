@@ -81,6 +81,21 @@ pip install -r requirements.txt
 
 ---
 
+## 📏 ArUco Scale Marker
+
+Generate a reference tag by running:
+
+```bash
+python scripts/generate_aruco_marker.py
+```
+
+This creates `assets/aruco_marker_30mm.png` using the `DICT_4X4_50` dictionary
+with marker ID `0`. The output image is saved at 300 DPI so that it prints to
+**30 mm × 30 mm** when printed at 100% scale. Place this marker in photos to
+allow the tooling to automatically determine real-world scale.
+
+---
+
 ## 🔑 License
 
 This project is licensed under the MIT License, with an additional commercial attribution clause.

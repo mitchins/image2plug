@@ -1,0 +1,3 @@
+# Ignore generated assets
+assets/
+__pycache__/
