@@ -1,3 +1,4 @@
 # Standard python stuff
 __pycache__/
 .DS_Store
+tests/proof
