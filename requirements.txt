@@ -1,4 +1,4 @@
-opencv-python
-opencv-contrib-python
+opencv-contrib-python-headless==4.8.1.78
+numpy==1.26.4
 Pillow
-numpy
+pytest

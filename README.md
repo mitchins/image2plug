@@ -36,7 +36,8 @@
 
 ```bash
 # Step 1: Straighten the image
-python straighten.py --input wall_hole.jpg --output straightened.jpg --points 123,456 789,456 789,900 123,900
+python straighten.py wall_hole.jpg straightened.jpg
+# The command prints a JSON report with image dimensions
 
 # Step 2: Detect the scale from a QR code or marker
 python detect_scale.py --input straightened.jpg --marker_size_mm 50
