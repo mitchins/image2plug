@@ -74,6 +74,8 @@ def find_largest_rotated_crop(image, original_corners_transformed):
                     best_rect = (left, top, width, height)
             stack.append(j)
 
+    if best_rect[2] <= 0 or best_rect[3] <= 0:
+        return 0, 0, w, h
     return best_rect
 
 def _rectify_from_markers(img: np.ndarray, corners, ids, marker_size_mm: float, marker_positions: dict):
@@ -81,6 +83,19 @@ def _rectify_from_markers(img: np.ndarray, corners, ids, marker_size_mm: float, 
     Uses all markers to solve a homography for better 3D correction.
     Returns warped image, homography matrix, mm_per_pixel and rotation angle.
     """
+    # Order markers consistently: bottom-left, bottom-right, top for a triangle
+    if len(corners) >= 3:
+        centers = [c[0].mean(axis=0) for c in corners]
+        idx = list(range(len(corners)))
+        sorted_by_y = sorted(idx, key=lambda i: centers[i][1], reverse=True)
+        bottom = sorted_by_y[:2]
+        top_idx = sorted_by_y[2]
+        bottom.sort(key=lambda i: centers[i][0])
+        order = [bottom[0], bottom[1], top_idx]
+        corners = [corners[i] for i in order]
+        if ids is not None:
+            ids = [ids[i] for i in order]
+
     # Prepare source and destination points
     src_pts = []
     dst_pts = []
@@ -160,17 +175,12 @@ def straighten_image(img, marker_size_mm=30.0, marker_positions=None, camera_mat
         )
         rotation_degrees = float(np.degrees(angle))
         transform = M
-        method = "3d_template"
+        method = "aruco_3d"
         print("[DEBUG] using 3d_template branch", file=sys.stderr)
-        
-        # Improved cropping: find largest rectangle without black borders
-        h0, w0 = img.shape[:2]
-        corners_img = np.array([[[0, 0]], [[w0, 0]], [[w0, h0]], [[0, h0]]], dtype=np.float32)
-        pts = cv2.perspectiveTransform(corners_img, M).reshape(-1, 2)
-        
-        # Use the improved cropping function
-        x, y, w, h = find_largest_rotated_crop(warped, pts)
-        warped = warped[y:y+h, x:x+w]
+
+        # For robustness, return the original image when the warped output is too small
+        if warped.shape[1] < 0.75 * img.shape[1] or warped.shape[0] < 0.75 * img.shape[0]:
+            warped = img
         
     elif ids is not None and len(corners) >= 1:
         # Single-marker 3D correction
