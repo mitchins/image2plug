@@ -38,138 +38,42 @@ def find_largest_rotated_crop(image, original_corners_transformed):
         (x, y, w, h): Crop rectangle coordinates
     """
     h, w = image.shape[:2]
-    
-    # Get the convex hull of the transformed corners
-    hull = cv2.convexHull(original_corners_transformed.astype(np.float32))
-    hull_points = hull.reshape(-1, 2)
-    
-    # Create a mask of the valid region (inside the convex hull)
+
+    # Get convex hull of transformed corners and build a mask
+    hull = cv2.convexHull(original_corners_transformed.astype(np.float32)).reshape(-1, 2).astype(np.int32)
     mask = np.zeros((h, w), dtype=np.uint8)
-    cv2.fillPoly(mask, [hull_points.astype(np.int32)], 255)
-    
-    # Find the largest inscribed rectangle using a more aggressive approach
-    # Start with the full image bounds and shrink inward until we find a valid rectangle
-    
+    cv2.fillPoly(mask, [hull], 255)
+    mask = mask.astype(bool)
+
+    # Use histogram-based maximal rectangle in binary matrix (O(hw))
+    heights = np.zeros(w, dtype=int)
     best_area = 0
-    best_rect = (0, 0, w, h)  # Start with full image
-    
-    # Try different rectangle positions and sizes more systematically
-    # Use a coarse-to-fine search with smaller steps for better coverage
-    
-    step_size = max(1, min(w, h) // 100)  # Adaptive step size
-    
-    for top in range(0, h // 2, step_size):
-        for left in range(0, w // 2, step_size):
-            for bottom in range(h - 1, h // 2, -step_size):
-                for right in range(w - 1, w // 2, -step_size):
-                    if right <= left or bottom <= top:
-                        continue
-                    
-                    # Check if all four corners of this rectangle are inside the hull
-                    rect_corners = np.array([
-                        [left, top], [right, top],
-                        [right, bottom], [left, bottom]
-                    ], dtype=np.float32)
-                    
-                    all_inside = True
-                    for corner in rect_corners:
-                        if cv2.pointPolygonTest(hull_points, tuple(corner), False) < 0:
-                            all_inside = False
-                            break
-                    
-                    if all_inside:
-                        area = (right - left) * (bottom - top)
-                        if area > best_area:
-                            best_area = area
-                            best_rect = (left, top, right - left, bottom - top)
-                            # Early termination if we find a very large rectangle
-                            if area > 0.8 * w * h:
-                                return best_rect
-    
-    # If the systematic search didn't find anything good, try a different approach
-    # Binary search approach for each edge
-    if best_area < 0.1 * w * h:  # If we only found a very small rectangle
-        # Find the largest rectangle by binary search on each edge
-        def is_rect_valid(x1, y1, x2, y2):
-            if x2 <= x1 or y2 <= y1:
-                return False
-            corners = np.array([[x1, y1], [x2, y1], [x2, y2], [x1, y2]], dtype=np.float32)
-            return all(cv2.pointPolygonTest(hull_points, tuple(corner), False) >= 0 for corner in corners)
-        
-        # Binary search for optimal bounds
-        def binary_search_bound(low, high, axis, direction):
-            """Binary search for the optimal boundary"""
-            best = low if direction > 0 else high
-            while high - low > 1:
-                mid = (low + high) // 2
-                if axis == 'x':
-                    if direction > 0:  # searching for right edge
-                        test_valid = is_rect_valid(0, 0, mid, h)
-                    else:  # searching for left edge
-                        test_valid = is_rect_valid(mid, 0, w, h)
-                else:  # axis == 'y'
-                    if direction > 0:  # searching for bottom edge
-                        test_valid = is_rect_valid(0, 0, w, mid)
-                    else:  # searching for top edge
-                        test_valid = is_rect_valid(0, mid, w, h)
-                
-                if test_valid:
-                    best = mid
-                    if direction > 0:
-                        low = mid
-                    else:
-                        high = mid
-                else:
-                    if direction > 0:
-                        high = mid
-                    else:
-                        low = mid
-            return best
-        
-        # Find bounds more precisely
-        hull_min_x = max(0, int(np.min(hull_points[:, 0])))
-        hull_max_x = min(w, int(np.max(hull_points[:, 0])))
-        hull_min_y = max(0, int(np.min(hull_points[:, 1])))
-        hull_max_y = min(h, int(np.max(hull_points[:, 1])))
-        
-        # Use the hull bounds as a starting point and try to expand
-        best_rect = (hull_min_x, hull_min_y, hull_max_x - hull_min_x, hull_max_y - hull_min_y)
-        
-        # Try to expand each edge incrementally
-        x, y, rect_w, rect_h = best_rect
-        
-        # Expand left
-        while x > 0:
-            if is_rect_valid(x - 1, y, x + rect_w, y + rect_h):
-                x -= 1
-                rect_w += 1
-            else:
-                break
-        
-        # Expand right
-        while x + rect_w < w:
-            if is_rect_valid(x, y, x + rect_w + 1, y + rect_h):
-                rect_w += 1
-            else:
-                break
-        
-        # Expand up
-        while y > 0:
-            if is_rect_valid(x, y - 1, x + rect_w, y + rect_h):
-                y -= 1
-                rect_h += 1
-            else:
-                break
-        
-        # Expand down
-        while y + rect_h < h:
-            if is_rect_valid(x, y, x + rect_w, y + rect_h + 1):
-                rect_h += 1
-            else:
-                break
-        
-        best_rect = (x, y, rect_w, rect_h)
-    
+    best_rect = (0, 0, 0, 0)
+
+    for i in range(h):
+        # update histogram heights
+        row = mask[i]
+        heights = heights + 1
+        heights[~row] = 0
+
+        # stack algorithm to find largest rectangle in histogram
+        stack = []
+        for j in range(w + 1):
+            curr_h = heights[j] if j < w else 0
+            while stack and curr_h < heights[stack[-1]]:
+                height = heights[stack.pop()]
+                width = j if not stack else j - stack[-1] - 1
+                area = height * width
+                if area > best_area:
+                    best_area = area
+                    # compute rectangle coords
+                    right = j
+                    left = 0 if not stack else stack[-1] + 1
+                    bottom = i + 1
+                    top = bottom - height
+                    best_rect = (left, top, width, height)
+            stack.append(j)
+
     return best_rect
 
 def _rectify_from_markers(img: np.ndarray, corners, ids, marker_size_mm: float, marker_positions: dict):
