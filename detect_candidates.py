@@ -54,7 +54,22 @@ def main():
     meta = load_metadata(args.metadata)
     mm_per_px = meta["result"].get("scale_x_mm_per_px")
 
+    # margin around markers in pixels
+    margin_mm = 20.0
+    margin_px = margin_mm / mm_per_px if mm_per_px else 0
+
     args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Detect markers in full image to get their bounding boxes
+    aruco = cv2.aruco
+    dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+    detector = aruco.ArucoDetector(dictionary)
+    full_corners, full_ids, _ = detector.detectMarkers(img)
+    marker_boxes = []
+    if full_ids is not None:
+        for corners in full_corners:
+            x_m, y_m, w_m, h_m = cv2.boundingRect(corners)
+            marker_boxes.append((x_m, y_m, w_m, h_m))
 
     contours = detect_contours(img)
     img_area = img.shape[0] * img.shape[1]
@@ -62,11 +77,25 @@ def main():
     candidates = []
     for idx, c in enumerate(sorted(contours, key=cv2.contourArea, reverse=True)):
         area = cv2.contourArea(c)
-        if area < 1000:
-            continue
-        if area > img_area * 0.95:
-            continue
         x, y, w, h = cv2.boundingRect(c)
+
+        # check if contour bbox is within margin_px of any marker box
+        near_marker = False
+        for mx, my, mw, mh in marker_boxes:
+            # compute distance in x and y between boxes
+            dx = max(mx - (x + w), x - (mx + mw), 0)
+            dy = max(my - (y + h), y - (my + mh), 0)
+            if dx <= margin_px and dy <= margin_px:
+                near_marker = True
+                break
+
+        # if not near a marker, apply area filters
+        if not near_marker:
+            if area < 1000:
+                continue
+            if area > img_area * 0.95:
+                continue
+
         pad = 5
         x0 = max(x - pad, 0)
         y0 = max(y - pad, 0)
@@ -75,10 +104,22 @@ def main():
 
         crop = img[y0:y1, x0:x1]
 
-        # Check if this is an ArUco marker
-        if is_aruco_candidate(crop):
+        # Skip contour if it overlaps a marker by more than 50% area
+        skip = False
+        for mx, my, mw, mh in marker_boxes:
+            ix0 = max(x, mx)
+            iy0 = max(y, my)
+            ix1 = min(x + w, mx + mw)
+            iy1 = min(y + h, my + mh)
+            if ix1 > ix0 and iy1 > iy0:
+                inter_area = (ix1 - ix0) * (iy1 - iy0)
+                marker_area = mw * mh
+                if inter_area / marker_area > 0.5:
+                    skip = True
+                    break
+        if skip:
             if args.debug:
-                print(f"[DEBUG] Rejected contour {idx} as ArUco marker, bbox {x},{y},{w},{h}")
+                print(f"[DEBUG] Rejected contour {idx} overlapping marker bbox {mx},{my},{mw},{mh}")
             continue
 
         crop_path = args.output_dir / f"candidate_{idx}.png"

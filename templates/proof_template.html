@@ -22,20 +22,43 @@ img{max-width:300px;}
 <h2 id="{{ test.name }}">{{ test.name }}</h2>
 <p>Source image:</p>
 <img src="{{ test.source_image }}" alt="source">
+<p>Corrected image:</p>
+<img src="{{ test.corrected_image }}" alt="corrected">
 <h3>Metadata</h3>
 <pre>{{ test.phase1 | tojson(indent=2) }}</pre>
-{% for cand in test.phase2.candidates %}
-<div class="candidate">
- {% if cand.crop_png %}
- <img src="{{ cand.crop_png }}" alt="Crop">
- {% endif %}
- {% if cand.preview_png %}
- <img src="{{ cand.preview_png }}" alt="DXF Render">
- {% endif %}
- <p><a href="{{ cand.dxf_file }}" download>Download DXF</a></p>
- <pre>{{ cand | tojson(indent=2) }}</pre>
-</div>
-{% endfor %}
+<h3>Candidates</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Crop</th>
+      <th>Preview</th>
+      <th>DXF</th>
+      <th>Details</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for cand in test.phase2.candidates %}
+    <tr>
+      <td>
+        {% if cand.crop_png %}
+          <img src="{{ cand.crop_png }}" alt="Crop">
+        {% endif %}
+      </td>
+      <td>
+        {% if cand.preview_png %}
+          <img src="{{ cand.preview_png }}" alt="Render">
+        {% endif %}
+      </td>
+      <td>
+        <a href="{{ cand.dxf_file }}" download>Download</a>
+      </td>
+      <td>
+        <pre>{{ cand | tojson(indent=2) }}</pre>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endfor %}
 </body>
 </html>

@@ -9,6 +9,7 @@ import shutil
 
 from proofing import ProofingReport
 
+CORRECTED_IMAGE = "corrected.png"
 
 def run(cmd):
     res = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -38,14 +39,14 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        straightened = out_dir / "straightened.png"
+        corrected = out_dir / CORRECTED_IMAGE
         meta_json = out_dir / "meta.json"
-        phase1_out = run(["python", "straighten.py", str(args.image), str(straightened)])
+        phase1_out = run(["python", "straighten.py", str(args.image), str(corrected)])
         meta_json.write_text(phase1_out)
         phase1 = json.loads(phase1_out)
 
         cand_dir = out_dir / "candidates"
-        phase2_out = run(["python", "detect_candidates.py", str(straightened), str(meta_json), str(cand_dir)])
+        phase2_out = run(["python", "detect_candidates.py", str(corrected), str(meta_json), str(cand_dir)])
         phase2 = json.loads(phase2_out)
 
         if args.proof:
@@ -53,13 +54,14 @@ def main():
             report.record({
                 "name": args.image.stem,
                 "source_image": str(args.image),
+                "corrected_image": CORRECTED_IMAGE,
                 "phase1": phase1,
                 "phase2": phase2,
             })
             report.write()
 
         summary = {
-            "straighten": phase1,
+            "corrected": phase1,
             "candidates": phase2,
         }
         print(json.dumps(summary))
