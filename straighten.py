@@ -1,9 +1,18 @@
+import os
+from pathlib import Path
 import argparse
-import json
 import cv2
 import numpy as np
 from pathlib import Path
+import json
+import sys
 
+# Placeholder template triangle positions for three-marker 3D correction (in mm)
+TEMPLATE_MARKER_POSITIONS = {
+    0: (0.0, 0.0),
+    1: (100.0, 0.0),    # placeholder X distance
+    2: (50.0, 86.6),    # placeholder Y for equilateral triangle
+}
 
 def order_points(pts):
     pts = np.array(pts, dtype="float32")
@@ -16,78 +25,251 @@ def order_points(pts):
     rect[3] = pts[np.argmax(diff)]
     return rect
 
+def find_largest_rotated_crop(image, original_corners_transformed):
+    """
+    Find the largest axis-aligned rectangle that fits inside the transformed image
+    and excludes black border regions created by rotation.
+    
+    Args:
+        image: The warped image
+        original_corners_transformed: The corners of the original image after transformation
+    
+    Returns:
+        (x, y, w, h): Crop rectangle coordinates
+    """
+    h, w = image.shape[:2]
 
-def detect_page_corners(gray):
-    edges = cv2.Canny(gray, 50, 150)
-    edges = cv2.dilate(edges, np.ones((3, 3), np.uint8))
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)
-    for c in contours:
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-        if len(approx) == 4:
-            return order_points(approx.reshape(4, 2))
-    if contours:
-        c = contours[0]
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-        return order_points(approx.reshape(-1, 2)[:4])
-    raise RuntimeError("Could not detect page corners")
+    # Get convex hull of transformed corners and build a mask
+    hull = cv2.convexHull(original_corners_transformed.astype(np.float32)).reshape(-1, 2).astype(np.int32)
+    mask = np.zeros((h, w), dtype=np.uint8)
+    cv2.fillPoly(mask, [hull], 255)
+    mask = mask.astype(bool)
 
+    # Use histogram-based maximal rectangle in binary matrix (O(hw))
+    heights = np.zeros(w, dtype=int)
+    best_area = 0
+    best_rect = (0, 0, 0, 0)
 
-def straighten_image(img, marker_size_mm=30.0):
+    for i in range(h):
+        # update histogram heights
+        row = mask[i]
+        heights = heights + 1
+        heights[~row] = 0
+
+        # stack algorithm to find largest rectangle in histogram
+        stack = []
+        for j in range(w + 1):
+            curr_h = heights[j] if j < w else 0
+            while stack and curr_h < heights[stack[-1]]:
+                height = heights[stack.pop()]
+                width = j if not stack else j - stack[-1] - 1
+                area = height * width
+                if area > best_area:
+                    best_area = area
+                    # compute rectangle coords
+                    right = j
+                    left = 0 if not stack else stack[-1] + 1
+                    bottom = i + 1
+                    top = bottom - height
+                    best_rect = (left, top, width, height)
+            stack.append(j)
+
+    return best_rect
+
+def _rectify_from_markers(img: np.ndarray, corners, ids, marker_size_mm: float, marker_positions: dict):
+    """Warp the image using all detected ArUco markers.
+    Uses all markers to solve a homography for better 3D correction.
+    Returns warped image, homography matrix, mm_per_pixel and rotation angle.
+    """
+    # Prepare source and destination points
+    src_pts = []
+    dst_pts = []
+    
+    for i, c in enumerate(corners):
+        # Try ID-based position (from config or calibration), otherwise index-based (dynamic)
+        origin_mm = None
+        marker_id = ids[i][0] if ids is not None else None
+        
+        if marker_id in marker_positions:
+            origin_mm = marker_positions[marker_id]
+        elif i in marker_positions:
+            origin_mm = marker_positions[i]
+        else:
+            continue
+        
+        pts = c[0].astype("float32")
+        src_pts.extend(pts)
+        dst_pts.extend([
+            [origin_mm[0], origin_mm[1]],
+            [origin_mm[0] + marker_size_mm, origin_mm[1]],
+            [origin_mm[0] + marker_size_mm, origin_mm[1] + marker_size_mm],
+            [origin_mm[0], origin_mm[1] + marker_size_mm],
+        ])
+    
+    src_pts = np.array(src_pts, dtype=np.float32)
+    dst_pts = np.array(dst_pts, dtype=np.float32)
+    
+    # Find the homography matrix using RANSAC
+    H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, ransacReprojThreshold=3.0)
+    
+    # Determine output image size based on destination points
+    dst_pts_transformed = cv2.perspectiveTransform(
+        np.array([[[0, 0]], [[img.shape[1], 0]], [[img.shape[1], img.shape[0]]], [[0, img.shape[0]]]], dtype=np.float32), H)
+    
+    min_x = np.min(dst_pts_transformed[:, 0, 0])
+    min_y = np.min(dst_pts_transformed[:, 0, 1])
+    max_x = np.max(dst_pts_transformed[:, 0, 0])
+    max_y = np.max(dst_pts_transformed[:, 0, 1])
+    
+    width = int(np.ceil(max_x - min_x))
+    height = int(np.ceil(max_y - min_y))
+    
+    # Apply perspective warp
+    warped = cv2.warpPerspective(img, H, (width, height))
+    
+    # After warping, output pixels represent millimeters directly
+    mm_per_px = 1.0
+    
+    return warped, H, mm_per_px, 0.0
+
+def straighten_image(img, marker_size_mm=30.0, marker_positions=None, camera_matrix=None, dist_coeffs=None):
+    """
+    Perform perspective correction using ArUco markers.
+    Flow paths:
+      - 3d_template: If three or more markers are detected, uses a hardcoded template triangle
+        in TEMPLATE_MARKER_POSITIONS to compute a full-plane homography.
+      - 3d_single_marker: If exactly one marker is detected, computes a homography based on that
+        marker's square to flatten and scale the image (1 px = 1 mm).
+      - identity: If no markers are detected, returns the original image and logs a note.
+    The selected method is returned in the 'method' field of the result metadata.
+    """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    height, width = img.shape[:2]
-    page_corners = np.array([
-        [0, 0],
-        [width - 1, 0],
-        [width - 1, height - 1],
-        [0, height - 1]
-    ], dtype="float32")
-
-    dst = np.array(
-        [[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]],
-        dtype="float32",
-    )
-    M = cv2.getPerspectiveTransform(page_corners, dst)
-    warped = cv2.warpPerspective(img, M, (width, height))
-
-    # ArUco marker detection for scale
-    gray_warp = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
     dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     detector = cv2.aruco.ArucoDetector(dictionary)
-    corners, ids, _ = detector.detectMarkers(gray_warp)
+    corners, ids, _ = detector.detectMarkers(gray)
+    
     notes = []
-    mm_per_pixel = None
-    if ids is not None and len(ids) > 0:
-        c = corners[0][0]
-        marker_width_px = np.linalg.norm(c[0] - c[1])
-        mm_per_pixel = marker_size_mm / marker_width_px
+    transform = None
+    rotation_degrees = 0.0
+    
+    if ids is not None and len(corners) >= 3:
+        # Three-marker template-based correction
+        marker_positions = TEMPLATE_MARKER_POSITIONS
+        warped, M, mm_per_pixel, angle = _rectify_from_markers(
+            img, corners, ids, marker_size_mm, marker_positions
+        )
+        rotation_degrees = float(np.degrees(angle))
+        transform = M
+        method = "3d_template"
+        print("[DEBUG] using 3d_template branch", file=sys.stderr)
+        
+        # Improved cropping: find largest rectangle without black borders
+        h0, w0 = img.shape[:2]
+        corners_img = np.array([[[0, 0]], [[w0, 0]], [[w0, h0]], [[0, h0]]], dtype=np.float32)
+        pts = cv2.perspectiveTransform(corners_img, M).reshape(-1, 2)
+        
+        # Use the improved cropping function
+        x, y, w, h = find_largest_rotated_crop(warped, pts)
+        warped = warped[y:y+h, x:x+w]
+        
+    elif ids is not None and len(corners) >= 1:
+        # Single-marker 3D correction
+        ref_pts = corners[0][0].astype(np.float32)
+        
+        # Compute mm_per_pixel from marker size and detected pixel width
+        pixel_width = float(np.linalg.norm(ref_pts[0] - ref_pts[1]))
+        mm_per_pixel = marker_size_mm / pixel_width
+        
+        dst = np.array([
+            [0, 0],
+            [marker_size_mm, 0],
+            [marker_size_mm, marker_size_mm],
+            [0, marker_size_mm]
+        ], dtype=np.float32)
+        
+        H, _ = cv2.findHomography(ref_pts, dst)
+        
+        # Compute pixel-preserving warp: H maps pixel->mm, scale back to pixel units
+        h, w = img.shape[:2]
+        corners_img = np.array([[[0, 0]], [[w, 0]], [[w, h]], [[0, h]]], dtype=np.float32)
+        
+        # Compute bounding box in mm coordinates
+        pts_mm = cv2.perspectiveTransform(corners_img, H).reshape(-1, 2)
+        min_x_mm, min_y_mm = pts_mm.min(axis=0)
+        max_x_mm, max_y_mm = pts_mm.max(axis=0)
+        
+        # Translation in mm to bring min to origin
+        T_mm = np.array([
+            [1, 0, -min_x_mm],
+            [0, 1, -min_y_mm],
+            [0, 0, 1]
+        ], dtype=np.float32)
+        
+        # Scale mm back to pixel units
+        S_px = np.array([
+            [1/mm_per_pixel, 0, 0],
+            [0, 1/mm_per_pixel, 0],
+            [0, 0, 1]
+        ], dtype=np.float32)
+        
+        # Combined homography: pixel->mm->translate->scale->pixel
+        H_pix = S_px @ T_mm @ H
+        
+        # Determine output pixel extents
+        pts_px = cv2.perspectiveTransform(corners_img, H_pix).reshape(-1, 2)
+        min_x_px, min_y_px = pts_px.min(axis=0)
+        max_x_px, max_y_px = pts_px.max(axis=0)
+        
+        out_w_px = int(np.ceil(max_x_px - min_x_px))
+        out_h_px = int(np.ceil(max_y_px - min_y_px))
+        
+        # Final translation to shift to positive pixel coords
+        T_px = np.array([
+            [1, 0, -min_x_px],
+            [0, 1, -min_y_px],
+            [0, 0, 1]
+        ], dtype=np.float32)
+        
+        H_final = T_px @ H_pix
+        warped = cv2.warpPerspective(img, H_final, (out_w_px, out_h_px))
+        
+        # Improved cropping for single marker case
+        h0, w0 = img.shape[:2]
+        corners_img = np.array([[[0, 0]], [[w0, 0]], [[w0, h0]], [[0, h0]]], dtype=np.float32)
+        pts = cv2.perspectiveTransform(corners_img, H_final).reshape(-1, 2)
+        
+        # Use the improved cropping function
+        x, y, w, h = find_largest_rotated_crop(warped, pts)
+        warped = warped[y:y+h, x:x+w]
+        
+        transform = H_final
+        method = "3d_single_marker"
+        print("[DEBUG] using 3d_single_marker branch", file=sys.stderr)
+        
     else:
-        notes.append("Aruco marker not detected; size may be inaccurate")
-
-    # Estimate rotation angle from transform matrix
-    angle_rad = np.arctan2(M[1, 0], M[0, 0])
-    rotation_degrees = np.degrees(angle_rad)
-
-    # Estimate overall image scale in mm per pixel
-    if mm_per_pixel is not None:
-        scale_x_mm_per_px = mm_per_pixel
-        scale_y_mm_per_px = mm_per_pixel
-    else:
-        scale_x_mm_per_px = None
-        scale_y_mm_per_px = None
-
+        # No markers: fallback
+        warped = img
+        mm_per_pixel = None
+        method = "identity"
+        print("[DEBUG] using identity branch (no markers)", file=sys.stderr)
+        notes.append("No ArUco markers detected; metric correction skipped")
+    
+    scale_x_mm_per_px = mm_per_pixel
+    scale_y_mm_per_px = mm_per_pixel
+    
     result = {
         "image": warped,
         "mm_per_pixel": mm_per_pixel,
         "scale_x_mm_per_px": scale_x_mm_per_px,
         "scale_y_mm_per_px": scale_y_mm_per_px,
         "rotation_degrees": round(rotation_degrees, 3),
+        "transform": transform,
+        "method": method,
         "notes": notes,
+        "marker_positions": marker_positions,
     }
+    
     return result
-
 
 def main():
     parser = argparse.ArgumentParser(description="Automatic perspective correction")
@@ -95,27 +277,27 @@ def main():
     parser.add_argument("output", help="Output straightened image path")
     parser.add_argument("--marker-size-mm", type=float, default=30.0, help="Size of ArUco marker in mm")
     args = parser.parse_args()
-
+    
     input_path = Path(args.input)
     output_path = Path(args.output)
-
+    
     img = cv2.imread(str(input_path))
     if img is None:
         raise SystemExit(f"Could not read input image: {input_path}")
-
+    
     res = straighten_image(img, marker_size_mm=args.marker_size_mm)
     warped = res["image"]
     mm_per_pixel = res["mm_per_pixel"]
     notes = res["notes"]
-
+    
     cv2.imwrite(str(output_path), warped)
-
+    
     size_px = warped.shape[1], warped.shape[0]
     if mm_per_pixel is not None:
         size_mm = [round(mm_per_pixel * s, 3) for s in size_px]
     else:
         size_mm = None
-
+    
     report = {
         "source": {
             "path": str(input_path),
@@ -127,13 +309,14 @@ def main():
             "scale_x_mm_per_px": res["scale_x_mm_per_px"],
             "scale_y_mm_per_px": res["scale_y_mm_per_px"],
             "rotation_degrees": res["rotation_degrees"],
+            "transform": res["transform"].tolist() if hasattr(res["transform"], "tolist") else res["transform"],
+            "method": res["method"],
         },
         "size_mm": size_mm,
         "notes": notes,
     }
-
+    
     print(json.dumps(report))
-
 
 if __name__ == "__main__":
     main()

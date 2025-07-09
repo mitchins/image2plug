@@ -36,14 +36,14 @@
 
 ```bash
 # Step 1: Straighten the image
-python straighten.py wall_hole.jpg straightened.jpg
+python straighten.py wall_hole.jpg corrected.jpg
 # The command prints a JSON report with image dimensions
 
 # Step 2: Detect the scale from a QR code or marker
-python detect_scale.py --input straightened.jpg --marker_size_mm 50
+python detect_scale.py --input corrected.jpg --marker_size_mm 50
 
 # Step 3: Extract the hole outline and export to DXF
-python contour_to_dxf.py --input straightened.jpg --scale 0.345 --output hole_shape.dxf
+python contour_to_dxf.py --input corrected.jpg --scale 0.345 --output hole_shape.dxf
 
 # Step 4: Create an OpenSCAD model from the DXF
 python dxf_to_scad.py --input hole_shape.dxf --extrude 3 --output hole_patch.scad
