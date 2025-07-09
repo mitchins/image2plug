@@ -18,7 +18,11 @@ def main():
     parser = argparse.ArgumentParser(description="Run the full image2plug pipeline")
     parser.add_argument("image", type=Path, help="Input image")
     parser.add_argument("output_dir", type=Path, help="Directory to place results")
-    parser.add_argument("--proof", type=Path, help="Write an HTML proof report to this directory")
+    parser.add_argument(
+        "--proof",
+        action="store_true",
+        help="Generate an HTML proof report in the output directory",
+    )
     args = parser.parse_args()
 
     out_dir = args.output_dir
@@ -35,7 +39,7 @@ def main():
     phase2 = json.loads(phase2_out)
 
     if args.proof:
-        report = ProofingReport(args.proof)
+        report = ProofingReport(out_dir, copy_assets=False)
         report.record({
             "name": args.image.stem,
             "source_image": str(args.image),

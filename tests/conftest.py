@@ -14,7 +14,7 @@ def pytest_configure(config):
     config.proof_enabled = os.getenv("PROOF", "").lower() == "true"
     if config.proof_enabled:
         config.option.exitfirst = True
-        config._proof_report = ProofingReport(Path("tests/proof"))
+        config._proof_report = ProofingReport(Path("tests/proof"), copy_assets=True)
 
 
 @pytest.fixture
