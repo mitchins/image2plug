@@ -67,3 +67,24 @@ def test_straighten_when_perfect_a4_image(tmp_path):
         print(f"[DEBUG] Scale Y (mm/px): {data['result'].get('scale_y_mm_per_px')}")
         print(f"[DEBUG] Notes: {data.get('notes')}")
         raise e
+
+
+def test_straighten_when_a4_3d_image(tmp_path):
+    input_img = Path('assets/reference_image_a4_3d_printed.jpeg')
+    output_img = tmp_path / 'out.png'
+    result = subprocess.run(
+        ['python', 'straighten.py', str(input_img), str(output_img)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(result.stdout)
+    assert data['result']['path'] == str(output_img)
+    assert Path(data['result']['path']).exists()
+    assert data['result'].get('method') == 'aruco_3d'
+    assert data['result'].get('transform') is not None
+    size_mm = data['size_mm']
+    assert size_mm is not None
+    # size may vary depending on marker placement, but scale should be reasonable
+    assert 0.05 <= data['result']['scale_x_mm_per_px'] <= 0.07
+    assert 0.05 <= data['result']['scale_y_mm_per_px'] <= 0.07
