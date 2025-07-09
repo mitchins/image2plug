@@ -84,6 +84,6 @@ class ProofingReport:
     def write(self) -> Path:
         """Render the HTML report and return the path to the index file."""
         html = self.template.render(tests=self.records)
-        index_path = self.output_dir / "proof.html"
+        index_path = self.output_dir / "index.html"
         index_path.write_text(html)
         return index_path

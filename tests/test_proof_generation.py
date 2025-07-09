@@ -12,4 +12,4 @@ def test_proof_generation(tmp_path):
         "--proof",
     ], check=True)
 
-    assert (output_dir / "proof.html").exists()
+    assert (output_dir / "index.html").exists()
