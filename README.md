@@ -127,3 +127,36 @@ See the LICENSE file for full details.
 - Archival restoration work.
 
 ---
+
+## 🚀 Practical Usage (Single Marker Flow)
+
+For the simplest and most reliable workflow, use a single ArUco marker (e.g. 30 mm square) and a smartphone with a tele or macro lens setting and onboard flash. This setup minimizes distortion, shadows, and focus errors.
+
+### Recommended Capture Setup
+
+1. **Device:** iPhone (tele/main lens) or similar with ProRAW capability.  
+2. **Lens:** Telephoto (e.g. 77 mm equiv.) or macro attachment for close focusing.  
+3. **Lighting:** Onboard flash or a diffused LED to eliminate shadows.  
+4. **Marker:** Print a single 30 × 30 mm ArUco marker at 100 % scale and place it adjacent to the hole or object of interest (centered in the frame).
+
+### Example
+
+Using the `assets/example1` images:
+
+| Step             | Command                                              | Output                                      |
+|------------------|------------------------------------------------------|---------------------------------------------|
+| **Original**     | (photo)                                              | `assets/example1/original.jpeg`             |
+| **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | `corrected.png` (perspective corrected)     |
+| **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | `results/candidates/candidate_0.png` (crop) |
+| **Render**       | (optionally view) `assets/example1/candidate_0_render.png`      | preview of extracted contour              |
+
+### Typical Parameters
+```bash
+# Straighten with default marker size 30 mm
+python straighten.py input.jpg output.png
+
+# Detect candidates with optional thresholding
+python detect_candidates.py output.png meta.json cand_dir --threshold
+```
+
+This workflow yields reliable size accuracy (~0.5 % error) and high-resolution crops for CNC or 3D printing.

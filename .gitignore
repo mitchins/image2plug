@@ -3,3 +3,4 @@ __pycache__/
 .DS_Store
 tests/proof
 results/
+debug_proc_qr.png
