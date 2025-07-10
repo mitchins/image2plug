@@ -25,6 +25,7 @@ You can run the entire process in one step using the `workflow.py` script:
 ```bash
 python workflow.py assets/example1/original.jpeg results --proof
 ```
+By default this extrudes detected shapes by **10 mm**. You can specify a custom height with `--extrude-height`.
 
 This runs straighten, detection, and outputs a proofing report (`results/proof_report.html`) along with all intermediate and final files.
 
@@ -38,6 +39,7 @@ Step by step example using the `assets/example1/` image set:
 | **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png)           |
 | **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png)              |
 | **Render**       | (optional preview)                                   | ![Render](assets/example1/candidate_0_render.png)    |
+| **OpenSCAD**     | `candidate_0.scad`                                   | *(extrudes DXF by default 10&nbsp;mm)*                |
 
 ---
 

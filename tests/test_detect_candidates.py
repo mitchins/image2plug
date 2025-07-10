@@ -9,6 +9,11 @@ def _load_json(text: str):
     except Exception:
         return {}
 
+
+def _assert_scad_files_exist(candidates):
+    for cand in candidates:
+        assert Path(cand['scad_path']).exists()
+
 def test_detect_candidates_on_reference(tmp_path, proof_recorder):
     input_img = Path('assets/reference_image_us_letter.png')
     corrected = tmp_path / 'corrected.png'
@@ -35,6 +40,7 @@ def test_detect_candidates_on_reference(tmp_path, proof_recorder):
     data = json.loads(res2.stdout)
     assert 'candidates' in data
     assert len(data['candidates']) >= 1
+    _assert_scad_files_exist(data['candidates'])
 
     # Verify one of the candidates closely matches the expected star position
     expected_bbox = [740, 1230, 480, 480]  # ±10 pixels margin
@@ -128,6 +134,7 @@ def test_detect_candidates_on_sony_macro(tmp_path, proof_recorder):
     )
     data = json.loads(res2.stdout)
     assert 'candidates' in data and data['candidates'], "No candidates found for Sony macro image"
+    _assert_scad_files_exist(data['candidates'])
 
     # Expected bbox for the single-marker case
     expected = [2392, 2820, 1468, 1472]
@@ -171,6 +178,7 @@ def test_detect_candidates_on_iphone_proraw_35mm(tmp_path, proof_recorder):
     )
     data = json.loads(res2.stdout)
     assert 'candidates' in data and data['candidates'], "No candidates found for iPhone ProRAW 35mm image"
+    _assert_scad_files_exist(data['candidates'])
     assert len(data['candidates']) == 1, "Expected exactly one candidate for iPhone ProRAW 35mm image"
 
     # Expected bbox for the single-marker case

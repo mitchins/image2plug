@@ -13,3 +13,6 @@ def test_proof_generation(tmp_path):
     ], check=True)
 
     assert (output_dir / "index.html").exists()
+    # Ensure that a SCAD file was generated for the candidate
+    scads = list((output_dir / "candidates").glob("*.scad"))
+    assert scads, "No SCAD output generated"
