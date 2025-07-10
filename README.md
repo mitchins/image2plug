@@ -141,14 +141,14 @@ For the simplest and most reliable workflow, use a single ArUco marker (e.g. 30â
 
 ### Example
 
-Using the `assets/example1` images:
+Example image set from `assets/example1/`:
 
-| Step             | Command                                              | Output                                      |
-|------------------|------------------------------------------------------|---------------------------------------------|
-| **Original**     | (photo)                                              | `assets/example1/original.jpeg`             |
-| **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | `corrected.png` (perspective corrected)     |
-| **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | `results/candidates/candidate_0.png` (crop) |
-| **Render**       | (optionally view) `assets/example1/candidate_0_render.png`      | preview of extracted contour              |
+| Step             | Command                                              | Output                                                |
+|------------------|------------------------------------------------------|-------------------------------------------------------|
+| **Original**     | (photo)                                              | ![Original](assets/example1/original.jpeg)           |
+| **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png)           |
+| **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png)              |
+| **Render**       | (optional preview)                                   | ![Render](assets/example1/candidate_0_render.png)    |
 
 ### Typical Parameters
 ```bash
