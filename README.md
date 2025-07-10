@@ -134,10 +134,26 @@ For the simplest and most reliable workflow, use a single ArUco marker (e.g. 30�
 
 ### Recommended Capture Setup
 
-1. **Device:** iPhone (tele/main lens) or similar with ProRAW capability.  
-2. **Lens:** Telephoto (e.g. 77 mm equiv.) or macro attachment for close focusing.  
-3. **Lighting:** Onboard flash or a diffused LED to eliminate shadows.  
-4. **Marker:** Print a single 30 × 30 mm ArUco marker at 100 % scale and place it adjacent to the hole or object of interest (centered in the frame).
+1. **Device:**  
+   Use a smartphone or camera with a high-resolution sensor and RAW capture capability.  
+   - Best: iPhone Pro models shooting in **ProRAW**, which preserves fine details and avoids over-sharpening artifacts.  
+   - Other options: Android devices with RAW (DNG) support or compact cameras with macro modes.
+
+2. **Lens:**  
+   Select a lens with minimal distortion and close focusing ability.  
+   - Preferred: Telephoto (e.g. 77 mm equivalent) or macro lens, which allow you to fill the frame with the hole and marker while avoiding wide-angle edge distortion.  
+   - Avoid: Ultra-wide lenses (e.g. 13–26 mm equivalent) unless properly corrected in post.
+
+3. **Lighting:**  
+   Ensure the subject is evenly lit, especially around the hole edges and marker.  
+   - Recommended: Onboard flash (iPhone's flash syncs with ProRAW), or an external diffused LED panel to remove shadows and highlight fine details.  
+   - Avoid: Overhead lighting that casts strong shadows from the lens itself.
+
+4. **Marker:**  
+   Print a single **30 × 30 mm ArUco marker** at 100 % scale.  
+   - Place the marker **close to the hole**, ideally on the same surface plane.  
+   - Ensure the marker is not distorted or curled.  
+   - Recommended marker: `DICT_4X4_50`, marker ID `0`, generated using the provided script.
 
 ### Example
 
