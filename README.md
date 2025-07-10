@@ -19,7 +19,18 @@
 
 ## Typical Workflow (Single Marker)
 
-Example using the `assets/example1/` image set:
+
+You can run the entire process in one step using the `workflow.py` script:
+
+```bash
+python workflow.py assets/example1/original.jpeg results --proof
+```
+
+This runs straighten, detection, and outputs a proofing report (`results/proof_report.html`) along with all intermediate and final files.
+
+---
+
+Step by step example using the `assets/example1/` image set:
 
 | Step             | Command                                              | Output                                                |
 |------------------|------------------------------------------------------|-------------------------------------------------------|
@@ -55,15 +66,6 @@ For best results, capture your images with the following considerations in mind.
    - Ensure the marker is not distorted or curled.  
    - By default, the tool expects a `DICT_4X4_50` ArUco marker with ID `0`, generated using the provided script.
 
----
-
-Alternatively, you can run the entire process in one step using the `workflow.py` script:
-
-```bash
-python workflow.py assets/example1/original.jpeg results --proof
-```
-
-This runs straighten, detection, and outputs a proofing report (`results/proof_report.html`) along with all intermediate and final files.
 
 ## Components & Tools Used
 
