@@ -4,20 +4,20 @@
 
 ---
 
-## 🎯 Project Goals
+## Project Goals
 
-- ✅ Take an image of a hole, irregular cutout, or damaged area.
-- ✅ Straighten the image (correct perspective/keystone).
-- ✅ Detect a scale marker (e.g., a printed square or QR code).
-- ✅ Extract the outline of the hole as a vector shape.
-- ✅ Export the shape as:
-  - 📐 DXF (for CAD/CAM use)
-  - 🔩 OpenSCAD script (extruded to a solid)
-- ✅ Allow users to fabricate a precise patch without manual tracing.
+- Take an image of a hole, irregular cutout, or damaged area.
+- Straighten the image (correct perspective/keystone).
+- Detect a scale marker (e.g., a printed square or QR code).
+- Extract the outline of the hole as a vector shape.
+- Export the shape as:
+  - DXF (for CAD/CAM use)
+  - OpenSCAD script (extruded to a solid)
+- Allow users to fabricate a precise patch without manual tracing.
 
 ---
 
-## 🔧 Typical Workflow (Single Marker)
+## Typical Workflow (Single Marker)
 
 Example using the `assets/example1/` image set:
 
@@ -65,7 +65,7 @@ python workflow.py assets/example1/original.jpeg results --proof
 
 This runs straighten, detection, and outputs a proofing report (`results/proof_report.html`) along with all intermediate and final files.
 
-## 🔍 Components & Tools Used
+## Components & Tools Used
 
 - **OpenCV:** For image straightening, edge detection, and contour finding.
 - **ezdxf:** For creating the DXF files.
@@ -74,7 +74,7 @@ This runs straighten, detection, and outputs a proofing report (`results/proof_r
 
 ---
 
-## ⚙️ Future Plans
+## Future Plans
 
 - Automatic marker detection with ArUco tags.
 - Export directly to STL.
@@ -84,7 +84,7 @@ This runs straighten, detection, and outputs a proofing report (`results/proof_r
 
 ---
 
-## 📦 Installation
+## Installation
 
 Clone the repository:
 
@@ -96,7 +96,7 @@ pip install -r requirements.txt
 
 ---
 
-## 📏 ArUco Scale Marker
+## ArUco Scale Marker
 
 Generate a reference tag by running:
 
@@ -111,7 +111,7 @@ allow the tooling to automatically determine real-world scale.
 
 ---
 
-## 🔑 License
+## License
 
 This project is licensed under the MIT License, with an additional commercial attribution clause.
 
@@ -142,15 +142,3 @@ See the LICENSE file for full details.
 
 ---
 
-## 🚀 Practical Usage
-
-The primary workflow uses a single ArUco marker (e.g. 30 mm square) and a smartphone with a telephoto or macro lens and onboard flash. This minimizes distortion and shadows.
-
-### Typical Parameters
-```bash
-# Straighten with default marker size 30 mm
-python straighten.py input.jpg output.png
-
-# Detect candidates with optional thresholding
-python detect_candidates.py output.png meta.json cand_dir --threshold
-```
