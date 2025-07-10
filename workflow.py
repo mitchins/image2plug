@@ -6,14 +6,21 @@ import json
 import subprocess
 from pathlib import Path
 import shutil
+import sys
+from subprocess import CalledProcessError
 
 from proofing import ProofingReport
 
 CORRECTED_IMAGE = "corrected.png"
 
 def run(cmd):
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return res.stdout
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return res.stdout
+    except CalledProcessError as e:
+        print(f"Error running command: {' '.join(cmd)}", file=sys.stderr)
+        print(e.stderr, file=sys.stderr)
+        sys.exit(e.returncode)
 
 
 def main():
@@ -49,12 +56,17 @@ def main():
         phase2_out = run(["python", "detect_candidates.py", str(corrected), str(meta_json), str(cand_dir)])
         phase2 = json.loads(phase2_out)
 
+        # Determine preview image for proofing (threshold variant)
+        threshold_img = out_dir / "candidates" / "debug_threshold.png"
+        preview_image = str(threshold_img.relative_to(out_dir)) if threshold_img.exists() else None
+
         if args.proof:
             report = ProofingReport(out_dir, copy_assets=False)
             report.record({
                 "name": args.image.stem,
                 "source_image": str(args.image),
                 "corrected_image": CORRECTED_IMAGE,
+                "preview_image": preview_image,
                 "phase1": phase1,
                 "phase2": phase2,
             })
