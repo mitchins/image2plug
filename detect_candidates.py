@@ -1,34 +1,60 @@
 import argparse
 import json
+import sys
 from pathlib import Path
-
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
 import ezdxf
 
 
-def load_metadata(path: Path):
+def load_metadata(path: Path) -> dict:
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
-def is_aruco_candidate(img_crop: np.ndarray):
-    try:
-        aruco = cv2.aruco
-        dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
-        parameters = aruco.DetectorParameters()
-        detector = aruco.ArucoDetector(dictionary, parameters)
-        corners, ids, _ = detector.detectMarkers(img_crop)
-        return ids is not None and len(ids) > 0
-    except AttributeError:
-        return False
-
-
-def detect_contours(img: np.ndarray) -> list:
+def detect_marker_boxes(img: np.ndarray) -> List[Tuple[int, int, int, int]]:
     """
-    Simple contour detection using global Otsu thresholding.
+    Detect marker bounding boxes in the image using ArUco markers.
+    QR code detection is included as an experimental/alternative method.
+    Returns a list of bounding boxes (x, y, w, h).
+    """
+    marker_boxes = []
+
+    # Primary production method: ArUco marker detection
+    aruco = cv2.aruco
+    dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+    detector = aruco.ArucoDetector(dictionary)
+    corners, ids, _ = detector.detectMarkers(img)
+    if ids is not None:
+        for c in corners:
+            x, y, w, h = cv2.boundingRect(c)
+            marker_boxes.append((x, y, w, h))
+
+    # Experimental/alternative: QR code detection
+    qr_detector = cv2.QRCodeDetector()
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    qr_corners = None
+    try:
+        retval, corners = qr_detector.detectMulti(gray)
+        if retval:
+            qr_corners = corners
+    except Exception:
+        retval, _, corners, _ = qr_detector.detectAndDecodeMulti(gray)
+        if retval:
+            qr_corners = corners
+    if qr_corners is not None:
+        for corner in qr_corners:
+            x, y, w, h = cv2.boundingRect(corner.astype(int))
+            marker_boxes.append((x, y, w, h))
+
+    return marker_boxes
+
+
+def detect_contours(img: np.ndarray) -> List[np.ndarray]:
+    """
+    Detect contours in the image using global Otsu thresholding.
     """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     _, thresh = cv2.threshold(
@@ -41,7 +67,7 @@ def detect_contours(img: np.ndarray) -> list:
     return contours
 
 
-def contour_to_dxf(contour: np.ndarray, path: Path):
+def contour_to_dxf(contour: np.ndarray, path: Path) -> None:
     points = contour.reshape(-1, 2)
     doc = ezdxf.new()
     msp = doc.modelspace()
@@ -49,117 +75,53 @@ def contour_to_dxf(contour: np.ndarray, path: Path):
     doc.saveas(str(path))
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Detect candidate holes from a straightened image")
-    parser.add_argument("image", type=Path, help="Input straightened image")
-    parser.add_argument("metadata", type=Path, help="Metadata JSON from straighten.py")
-    parser.add_argument("output_dir", type=Path, help="Directory to write results")
-    parser.add_argument("--debug", action="store_true", help="Enable debug output")
-    parser.add_argument("--fast", action="store_true", default=False, help="Use fast downsampled thresholding (default: False)")
-    parser.add_argument("--threshold", action="store_true", default=False,
-                        help="Enable binary thresholding for contour detection (default: off)")
-    args = parser.parse_args()
-
-    img = cv2.imread(str(args.image))
-    if img is None:
-        raise SystemExit(f"Could not read input image: {args.image}")
-
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    meta = load_metadata(args.metadata)
-    mm_per_px = meta["result"].get("scale_x_mm_per_px")
-
-    # margin around markers in pixels
+def filter_candidates(
+    contours: List[np.ndarray],
+    marker_boxes: List[Tuple[int, int, int, int]],
+    mm_per_px: Optional[float],
+    img_shape: Tuple[int, int, int],
+    debug: bool = False
+) -> List[dict]:
+    """
+    Filter contours to identify candidate holes, considering proximity to markers,
+    size thresholds, and overlap with markers.
+    Returns a list of candidate dictionaries with image crop paths, DXF paths, bounding boxes, and sizes.
+    """
     margin_mm = 20.0
     margin_px = margin_mm / mm_per_px if mm_per_px else 0
-
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-
-    marker_boxes = []
-    # Detect ArUco markers
-    aruco = cv2.aruco
-    dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
-    detector = aruco.ArucoDetector(dictionary)
-    full_corners, full_ids, _ = detector.detectMarkers(img)
-    if full_ids is not None:
-        for corners in full_corners:
-            x_m, y_m, w_m, h_m = cv2.boundingRect(corners)
-            marker_boxes.append((x_m, y_m, w_m, h_m))
-
-    # Detect QR codes and treat as markers
-    qr_detector = cv2.QRCodeDetector()
-    qr_corners = None
-    # Try detectMulti first (retval, corners)
-    try:
-        retval, corners = qr_detector.detectMulti(gray)
-        if retval:
-            qr_corners = corners
-    except Exception:
-        # Fallback to detectAndDecodeMulti
-        retval, _, corners, _ = qr_detector.detectAndDecodeMulti(gray)
-        if retval:
-            qr_corners = corners
-    if qr_corners is not None:
-        for corner in qr_corners:
-            x_q, y_q, w_q, h_q = cv2.boundingRect(corner.astype(int))
-            marker_boxes.append((x_q, y_q, w_q, h_q))
-
-    # Use fast mode unless debug is enabled or --fast is set
-    if args.fast:
-        fast_mode = True
-    elif args.debug:
-        fast_mode = False
-    else:
-        fast_mode = True
-
-    # Prepare path to save thresholded image variant only if thresholding is enabled
-    if args.threshold:
-        threshold_debug_path = args.output_dir / "debug_threshold.png"
-    else:
-        threshold_debug_path = None
-
-    contours = detect_contours(img)
-    img_area = img.shape[0] * img.shape[1]
-
+    img_area = img_shape[0] * img_shape[1]
     candidates = []
-    for idx, c in enumerate(sorted(contours, key=cv2.contourArea, reverse=True)):
-        area = cv2.contourArea(c)
-        x, y, w, h = cv2.boundingRect(c)
-        # Skip tiny contours: less than 10 mm × 10 mm
-        if mm_per_px:
+
+    for idx, contour in enumerate(sorted(contours, key=cv2.contourArea, reverse=True)):
+        area = cv2.contourArea(contour)
+        x, y, w, h = cv2.boundingRect(contour)
+
+        # Skip contours smaller than 10mm x 10mm if scale is known
+        if mm_per_px is not None:
             width_mm = w * mm_per_px
             height_mm = h * mm_per_px
             if width_mm < 10.0 or height_mm < 10.0:
-                if args.debug:
-                    print(f"[DEBUG] Skipping small contour {idx}: {width_mm:.1f}×{height_mm:.1f} mm", file=sys.stderr)
+                if debug:
+                    print(f"[DEBUG] Skipping small contour {idx}: {width_mm:.1f}×{height_mm:.1f} mm", file=sys.stderr)
                 continue
 
-        # check if contour bbox is within margin_px of any marker box
+        # Check if contour bbox is near any marker box within margin_px
         near_marker = False
         for mx, my, mw, mh in marker_boxes:
-            # compute distance in x and y between boxes
             dx = max(mx - (x + w), x - (mx + mw), 0)
             dy = max(my - (y + h), y - (my + mh), 0)
             if dx <= margin_px and dy <= margin_px:
                 near_marker = True
                 break
 
-        # if not near a marker, apply area filters
+        # Apply area filters if not near a marker
         if not near_marker:
             if area < 1000:
                 continue
             if area > img_area * 0.95:
                 continue
 
-        pad = 5
-        x0 = max(x - pad, 0)
-        y0 = max(y - pad, 0)
-        x1 = min(x + w + pad, img.shape[1])
-        y1 = min(y + h + pad, img.shape[0])
-
-        crop = img[y0:y1, x0:x1]
-
-        # Skip contour if it overlaps a marker by more than 50% area
+        # Skip contour if overlapping any marker by more than 50% area
         skip = False
         for mx, my, mw, mh in marker_boxes:
             ix0 = max(x, mx)
@@ -173,21 +135,101 @@ def main():
                     skip = True
                     break
         if skip:
-            if args.debug:
-                print(f"[DEBUG] Rejected contour {idx} overlapping marker bbox {mx},{my},{mw},{mh}")
+            if debug:
+                print(f"[DEBUG] Skipping contour {idx} due to overlap with marker", file=sys.stderr)
             continue
+
+        # Prepare crop and DXF paths
+        pad = 5
+        x0 = max(x - pad, 0)
+        y0 = max(y - pad, 0)
+        x1 = min(x + w + pad, img_shape[1])
+        y1 = min(y + h + pad, img_shape[0])
+
+        candidates.append({
+            "contour": contour,
+            "bbox": (x, y, w, h),
+            "crop_coords": (y0, y1, x0, x1),
+        })
+
+    return candidates
+
+
+def select_closest_candidate(
+    candidates: List[dict],
+    marker_box: Tuple[int, int, int, int],
+    debug: bool = False
+) -> List[dict]:
+    """
+    Select the candidate closest to the center of the single marker box.
+    Returns a list containing only the closest candidate.
+    """
+    mx, my, mw, mh = marker_box
+    marker_cx = mx + mw / 2.0
+    marker_cy = my + mh / 2.0
+
+    def dist_to_marker(cand: dict) -> float:
+        x, y, w, h = cand["bbox"]
+        cx = x + w / 2.0
+        cy = y + h / 2.0
+        return (cx - marker_cx) ** 2 + (cy - marker_cy) ** 2
+
+    candidates_sorted = sorted(candidates, key=dist_to_marker)
+    if debug and candidates_sorted:
+        print(f"[DEBUG] Single-marker: selecting closest candidate {candidates_sorted[0]['bbox']}", file=sys.stderr)
+    return [candidates_sorted[0]] if candidates_sorted else []
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Detect candidate holes from a straightened image")
+    parser.add_argument("image", type=Path, help="Input straightened image")
+    parser.add_argument("metadata", type=Path, help="Metadata JSON from straighten.py")
+    parser.add_argument("output_dir", type=Path, help="Directory to write results")
+    parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    args = parser.parse_args()
+
+    # Step 1: Load image and metadata
+    img = cv2.imread(str(args.image))
+    if img is None:
+        raise SystemExit(f"Could not read input image: {args.image}")
+    meta = load_metadata(args.metadata)
+    mm_per_px = meta["result"].get("scale_x_mm_per_px")
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Step 2: Detect markers (primary: ArUco; alternative: QR codes)
+    marker_boxes = detect_marker_boxes(img)
+    if args.debug:
+        print(f"[DEBUG] Detected {len(marker_boxes)} marker(s)", file=sys.stderr)
+
+    # Step 3: Detect contours
+    contours = detect_contours(img)
+    if args.debug:
+        print(f"[DEBUG] Detected {len(contours)} contours", file=sys.stderr)
+
+    # Step 4: Filter candidates based on markers and size
+    filtered_candidates = filter_candidates(contours, marker_boxes, mm_per_px, img.shape, debug=args.debug)
+
+    # Step 5: In single-marker scenario, select closest candidate
+    if len(marker_boxes) == 1:
+        filtered_candidates = select_closest_candidate(filtered_candidates, marker_boxes[0], debug=args.debug)
+
+    # Step 6: Output results
+    candidates_output = []
+    for idx, candidate in enumerate(filtered_candidates):
+        contour = candidate["contour"]
+        x, y, w, h = candidate["bbox"]
+        y0, y1, x0, x1 = candidate["crop_coords"]
+        crop = img[y0:y1, x0:x1]
 
         crop_path = args.output_dir / f"candidate_{idx}.png"
         cv2.imwrite(str(crop_path), crop)
 
         dxf_path = args.output_dir / f"candidate_{idx}.dxf"
-        contour_to_dxf(c, dxf_path)
+        contour_to_dxf(contour, dxf_path)
 
-        if mm_per_px is not None:
-            size_mm = [round(w * mm_per_px, 3), round(h * mm_per_px, 3)]
-        else:
-            size_mm = None
-        candidates.append({
+        size_mm = [round(w * mm_per_px, 3), round(h * mm_per_px, 3)] if mm_per_px is not None else None
+
+        candidates_output.append({
             "image_crop": str(crop_path),
             "dxf_path": str(dxf_path),
             "bbox": [int(x), int(y), int(w), int(h)],
@@ -195,27 +237,9 @@ def main():
         })
 
         if args.debug:
-            print(f"[DEBUG] Accepted candidate {idx}, bbox {x},{y},{w},{h}, size {size_mm}")
+            print(f"[DEBUG] Accepted candidate {idx}, bbox {x},{y},{w},{h}, size {size_mm}", file=sys.stderr)
 
-    # In single-marker mode, keep only the candidate nearest to the marker center
-    if len(marker_boxes) == 1 and candidates:
-        # Compute marker center
-        mx, my, mw, mh = marker_boxes[0]
-        marker_cx = mx + mw / 2.0
-        marker_cy = my + mh / 2.0
-        # Compute candidate center distances
-        def dist_to_marker(cand):
-            x, y, w, h = cand["bbox"]
-            cx = x + w / 2.0
-            cy = y + h / 2.0
-            return (cx - marker_cx)**2 + (cy - marker_cy)**2
-        # Sort and keep only closest
-        candidates = sorted(candidates, key=dist_to_marker)
-        if args.debug:
-            print(f"[DEBUG] Single-marker: selecting closest candidate {candidates[0]['bbox']}", file=sys.stderr)
-        candidates = [candidates[0]]
-
-    summary = {"candidates": candidates}
+    summary = {"candidates": candidates_output}
     print(json.dumps(summary))
 
 
