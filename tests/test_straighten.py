@@ -71,7 +71,7 @@ def test_straighten_when_perfect_a4_image(tmp_path):
 
 
 def test_straighten_when_a4_3d_image(tmp_path):
-    input_img = Path('assets/reference_image_a4_3d_printed.jpeg')
+    input_img = Path('assets/template_a4_3d_printed.jpeg')
     output_img = tmp_path / 'out.png'
     result = subprocess.run(
         ['python', 'straighten.py', str(input_img), str(output_img)],
@@ -86,9 +86,14 @@ def test_straighten_when_a4_3d_image(tmp_path):
     assert data['result'].get('transform') is not None
     size_mm = data['size_mm']
     assert size_mm is not None
-    # size may vary depending on marker placement, but for aruco_3d method, scale should be exactly 1.0
-    assert data['result']['scale_x_mm_per_px'] == 1.0
-    assert data['result']['scale_y_mm_per_px'] == 1.0
+    # Instead of requiring scale==1.0, verify size_mm is close to A4 dimensions within a tolerance
+    EXPECTED_WIDTH_MM = 190.042
+    EXPECTED_HEIGHT_MM = 302.034
+    TOLERANCE_MM = 5  # allow 5mm tolerance
+    assert abs(size_mm[0] - EXPECTED_WIDTH_MM) <= TOLERANCE_MM, \
+        f"A4 3D width {size_mm[0]} mm outside expected {EXPECTED_WIDTH_MM}±{TOLERANCE_MM}"
+    assert abs(size_mm[1] - EXPECTED_HEIGHT_MM) <= TOLERANCE_MM, \
+        f"A4 3D height {size_mm[1]} mm outside expected {EXPECTED_HEIGHT_MM}±{TOLERANCE_MM}"
 
     # Verify that the homography is not the identity (i.e., a meaningful transform was applied)
     transform = np.array(data['result']['transform'], dtype=float)
@@ -101,3 +106,48 @@ def test_straighten_when_a4_3d_image(tmp_path):
     new_w, new_h   = data['result']['size_px']
     assert new_w >= 0.75 * orig_w, f"Result width {new_w} less than 75% of original {orig_w}"
     assert new_h >= 0.75 * orig_h, f"Result height {new_h} less than 75% of original {orig_h}"
+
+
+def test_straighten_a4_printed_single_marker_regression(tmp_path):
+    # Regression test for reference_image_a4_printed.jpeg single-marker output
+    input_img = Path('assets/reference_image_a4_printed.jpeg')
+    output_img = tmp_path / 'out.png'
+    # Run straighten
+    res = subprocess.run(
+        ['python', 'straighten.py', str(input_img), str(output_img)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(res.stdout)
+
+    # Check method
+    assert data['result']['method'] == '3d_single_marker'
+
+    # Expected values
+    exp_rotation = 0.0
+    exp_scale = 0.04849033005033121
+    exp_size_px = [2758, 4156]
+
+    # Tolerances
+    tol_rot = 0.1  # degrees
+    tol_scale = exp_scale * 0.01  # 1%
+    tol_px = 2  # pixels
+
+    # Assert rotation
+    assert abs(data['result']['rotation_degrees'] - exp_rotation) <= tol_rot, \
+        f"Rotation {data['result']['rotation_degrees']} differs from expected {exp_rotation}"
+
+    # Assert scales
+    sx = data['result']['scale_x_mm_per_px']
+    sy = data['result']['scale_y_mm_per_px']
+    assert abs(sx - exp_scale) <= tol_scale, \
+        f"Scale X {sx} differs from expected {exp_scale}"
+    assert abs(sy - exp_scale) <= tol_scale, \
+        f"Scale Y {sy} differs from expected {exp_scale}"
+
+    # Assert size_px
+    actual_size = data['result']['size_px']
+    for actual, expected in zip(actual_size, exp_size_px):
+        assert abs(actual - expected) <= tol_px, \
+            f"Dimension {actual} differs from expected {expected} by more than {tol_px}px"

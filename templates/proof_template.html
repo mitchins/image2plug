@@ -20,12 +20,28 @@ img{max-width:300px;}
 </ul>
 {% for test in tests %}
 <h2 id="{{ test.name }}">{{ test.name }}</h2>
-<p>Source image:</p>
-<img src="{{ test.source_image }}" alt="source">
-<p>Corrected image:</p>
-<img src="{{ test.corrected_image }}" alt="corrected">
-<h3>Metadata</h3>
-<pre>{{ test.phase1 | tojson(indent=2) }}</pre>
+<table>
+  <thead>
+    <tr>
+      <th>Original</th>
+      <th>Corrected</th>
+      <th>Preview</th>
+      <th>Metadata</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><img src="{{ test.source_image }}" alt="source"></td>
+      <td><img src="{{ test.corrected_image }}" alt="corrected"></td>
+      <td>
+        {% if test.preview_image %}
+          <img src="{{ test.preview_image }}" alt="preview">
+        {% endif %}
+      </td>
+      <td><pre>{{ test.phase1 | tojson(indent=2) }}</pre></td>
+    </tr>
+  </tbody>
+</table>
 <h3>Candidates</h3>
 <table>
   <thead>

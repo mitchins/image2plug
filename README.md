@@ -4,54 +4,68 @@
 
 ---
 
-## 🎯 Project Goals
+## Project Goals
 
-- ✅ Take an image of a hole, irregular cutout, or damaged area.
-- ✅ Straighten the image (correct perspective/keystone).
-- ✅ Detect a scale marker (e.g., a printed square or QR code).
-- ✅ Extract the outline of the hole as a vector shape.
-- ✅ Export the shape as:
-  - 📐 DXF (for CAD/CAM use)
-  - 🔩 OpenSCAD script (extruded to a solid)
-- ✅ Enable makers, tinkerers, and repair professionals to fabricate a precise patch without manual tracing.
-
----
-
-## 🔧 Typical Workflow
-
-```plaintext
-1. Capture an image of the hole, placing a scale marker in the frame.
-2. Run the image through the CLI toolchain:
-
-   straighten.py → detect_scale.py → contour_to_dxf.py → dxf_to_scad.py
-
-3. Adjust extrusion depth as needed.
-4. Open the SCAD file in OpenSCAD or export to STL.
-5. Print or machine your patch.
-```
+- Take an image of a hole, irregular cutout, or damaged area.
+- Straighten the image (correct perspective/keystone).
+- Detect a scale marker (e.g., a printed square or QR code).
+- Extract the outline of the hole as a vector shape.
+- Export the shape as:
+  - DXF (for CAD/CAM use)
+  - OpenSCAD script (extruded to a solid)
+- Allow users to fabricate a precise patch without manual tracing.
 
 ---
 
-### Example CLI Flow:
+## Typical Workflow (Single Marker)
+
+Example using the `assets/example1/` image set:
+
+| Step             | Command                                              | Output                                                |
+|------------------|------------------------------------------------------|-------------------------------------------------------|
+| **Original**     | (photo)                                              | ![Original](assets/example1/original.jpeg)           |
+| **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png)           |
+| **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png)              |
+| **Render**       | (optional preview)                                   | ![Render](assets/example1/candidate_0_render.png)    |
+
+---
+
+### Recommended Capture Setup
+
+For best results, capture your images with the following considerations in mind.
+
+1. **Device:**  
+   Use a smartphone or camera with a high-resolution sensor and RAW capture capability.  
+   - Recommended: iPhone Pro models shooting in **ProRAW** for maximum detail and minimal processing artifacts.  
+   - Other options: Android devices with RAW (DNG) support or compact cameras with macro modes.
+
+2. **Lens:**  
+   Select a lens with minimal distortion and close focusing ability.  
+   - Recommended: Telephoto (e.g. 77 mm equivalent) or macro lenses to fill the frame with minimal distortion.  
+   - Avoid: Ultra-wide lenses (e.g. 13–26 mm equivalent) unless properly corrected in post.
+
+3. **Lighting:**  
+   Ensure the subject is evenly lit, especially around the hole edges and marker.  
+   - Recommended: Onboard flash (iPhone's flash syncs with ProRAW), or an external diffused LED panel to remove shadows and highlight fine details.  
+   - Avoid: Overhead lighting that casts strong shadows from the lens itself.
+
+4. **Marker:**  
+   Print a single **30 × 30 mm ArUco marker** at 100 % scale.  
+   - Place the marker **close to the hole**, ideally on the same surface plane.  
+   - Ensure the marker is not distorted or curled.  
+   - By default, the tool expects a `DICT_4X4_50` ArUco marker with ID `0`, generated using the provided script.
+
+---
+
+Alternatively, you can run the entire process in one step using the `workflow.py` script:
 
 ```bash
-# Step 1: Straighten the image
-python straighten.py wall_hole.jpg corrected.jpg
-# The command prints a JSON report with image dimensions
-
-# Step 2: Detect the scale from a QR code or marker
-python detect_scale.py --input corrected.jpg --marker_size_mm 50
-
-# Step 3: Extract the hole outline and export to DXF
-python contour_to_dxf.py --input corrected.jpg --scale 0.345 --output hole_shape.dxf
-
-# Step 4: Create an OpenSCAD model from the DXF
-python dxf_to_scad.py --input hole_shape.dxf --extrude 3 --output hole_patch.scad
+python workflow.py assets/example1/original.jpeg results --proof
 ```
 
----
+This runs straighten, detection, and outputs a proofing report (`results/proof_report.html`) along with all intermediate and final files.
 
-## 🔍 Components & Tools Used
+## Components & Tools Used
 
 - **OpenCV:** For image straightening, edge detection, and contour finding.
 - **ezdxf:** For creating the DXF files.
@@ -60,7 +74,7 @@ python dxf_to_scad.py --input hole_shape.dxf --extrude 3 --output hole_patch.sca
 
 ---
 
-## ⚙️ Future Plans
+## Future Plans
 
 - Automatic marker detection with ArUco tags.
 - Export directly to STL.
@@ -70,7 +84,7 @@ python dxf_to_scad.py --input hole_shape.dxf --extrude 3 --output hole_patch.sca
 
 ---
 
-## 📦 Installation
+## Installation
 
 Clone the repository:
 
@@ -82,7 +96,7 @@ pip install -r requirements.txt
 
 ---
 
-## 📏 ArUco Scale Marker
+## ArUco Scale Marker
 
 Generate a reference tag by running:
 
@@ -97,7 +111,7 @@ allow the tooling to automatically determine real-world scale.
 
 ---
 
-## 🔑 License
+## License
 
 This project is licensed under the MIT License, with an additional commercial attribution clause.
 
@@ -119,7 +133,7 @@ See the LICENSE file for full details.
 
 ---
 
-## ✨ Example Use Cases
+## Example Use Cases
 
 - DIY wall or furniture repair.
 - Industrial equipment cutouts.
@@ -127,3 +141,4 @@ See the LICENSE file for full details.
 - Archival restoration work.
 
 ---
+

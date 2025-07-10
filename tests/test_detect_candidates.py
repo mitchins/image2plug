@@ -55,3 +55,136 @@ def test_detect_candidates_on_reference(tmp_path, proof_recorder):
         'phase1': phase1,
         'phase2': data,
     })
+
+
+def test_detect_candidates_on_a4_template(tmp_path, proof_recorder):
+    # Use the A4 printed reference image
+    input_img = Path('assets/reference_image_a4_printed.jpeg')
+    corrected = tmp_path / 'corrected_a4.png'
+    meta_json = tmp_path / 'meta_a4.json'
+
+    # Phase 1: straighten
+    res1 = subprocess.run(
+        ['python', 'straighten.py', str(input_img), str(corrected)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    meta_json.write_text(res1.stdout)
+    phase1 = _load_json(res1.stdout)
+
+    # Phase 2: detect candidates
+    output_dir = tmp_path / 'candidates_a4'
+    res2 = subprocess.run(
+        ['python', 'detect_candidates.py', str(corrected), str(meta_json), str(output_dir)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(res2.stdout)
+    assert 'candidates' in data
+    assert len(data['candidates']) >= 1
+
+    # Expected bbox from integration
+    expected = [1356, 1584, 839, 843]
+    # Allow 1% margin of error
+    diffs = [
+        abs(b - e) <= max(1, int(e * 0.01))
+        for b, e in zip(data['candidates'][0]['bbox'], expected)
+    ]
+    assert all(diffs), f"A4 candidate bbox {data['candidates'][0]['bbox']} differs from expected {expected} by more than 1%"
+
+    proof_recorder({
+        'name': 'test_detect_candidates_on_a4_template',
+        'source_image': str(input_img),
+        'phase1': phase1,
+        'phase2': data,
+    })
+
+
+def test_detect_candidates_on_sony_macro(tmp_path, proof_recorder):
+    # Single-marker variant shot with Sony A7IV + Sigma Macro 90mm
+    input_img = Path('assets/reference_image_a4_printed_macro.jpeg')
+    corrected = tmp_path / 'corrected_sony.png'
+    meta_json = tmp_path / 'meta_sony.json'
+
+    # Phase 1: straighten (single-marker)
+    res1 = subprocess.run(
+        ['python', 'straighten.py', str(input_img), str(corrected)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    meta_json.write_text(res1.stdout)
+    phase1 = _load_json(res1.stdout)
+
+    # Phase 2: detect candidates
+    output_dir = tmp_path / 'candidates_sony'
+    res2 = subprocess.run(
+        ['python', 'detect_candidates.py', str(corrected), str(meta_json), str(output_dir)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(res2.stdout)
+    assert 'candidates' in data and data['candidates'], "No candidates found for Sony macro image"
+
+    # Expected bbox for the single-marker case
+    expected = [2392, 2820, 1468, 1472]
+    # Allow 1% margin of error
+    diffs = [
+        abs(b - e) <= max(1, int(e * 0.01))
+        for b, e in zip(data['candidates'][0]['bbox'], expected)
+    ]
+    assert all(diffs), f"Sony macro bbox {data['candidates'][0]['bbox']} differs from expected {expected} by more than 1%"
+
+    proof_recorder({
+        'name': 'test_detect_candidates_on_sony_macro',
+        'source_image': str(input_img),
+        'phase1': phase1,
+        'phase2': data,
+    })
+
+def test_detect_candidates_on_iphone_proraw_35mm(tmp_path, proof_recorder):
+    # iPhone ProRAW, 35mm wide lens
+    input_img = Path('assets/reference_image_a4_printed_pro_raw_35mm_wide_lens.jpeg')
+    corrected = tmp_path / 'corrected_iphone_raw.png'
+    meta_json = tmp_path / 'meta_iphone_raw.json'
+
+    # Phase 1: straighten (single-marker)
+    res1 = subprocess.run(
+        ['python', 'straighten.py', str(input_img), str(corrected)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    meta_json.write_text(res1.stdout)
+    phase1 = _load_json(res1.stdout)
+
+    # Phase 2: detect candidates
+    output_dir = tmp_path / 'candidates_iphone_raw'
+    res2 = subprocess.run(
+        ['python', 'detect_candidates.py', str(corrected), str(meta_json), str(output_dir)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(res2.stdout)
+    assert 'candidates' in data and data['candidates'], "No candidates found for iPhone ProRAW 35mm image"
+    assert len(data['candidates']) == 1, "Expected exactly one candidate for iPhone ProRAW 35mm image"
+
+    # Expected bbox for the single-marker case
+    expected = [1482, 1790, 1174, 1178]
+    # Allow 1% margin of error
+    diffs = [
+        abs(b - e) <= max(1, int(e * 0.01))
+        for b, e in zip(data['candidates'][0]['bbox'], expected)
+    ]
+    assert all(diffs), f"iPhone ProRAW 35mm bbox {data['candidates'][0]['bbox']} differs from expected {expected} by more than 1%"
+
+    proof_recorder({
+        'name': 'test_detect_candidates_on_iphone_proraw_35mm',
+        'source_image': str(input_img),
+        'phase1': phase1,
+        'phase2': data,
+    })

@@ -5,3 +5,4 @@ pytest
 ezdxf
 jinja2
 matplotlib
+qrcode
