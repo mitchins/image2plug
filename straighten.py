@@ -271,48 +271,7 @@ def straighten_image(img, marker_size_mm=30.0, marker_positions=None, camera_mat
         edge_px = float(np.linalg.norm(ref_pts0[1] - ref_pts0[0]))
         single_px_per_mm = edge_px / marker_size_mm
         if abs(single_px_per_mm - mm_per_pixel) / single_px_per_mm > 0.05:
-            print("[DEBUG] triple-ArUco scale deviates >5%; falling back to single-marker", file=sys.stderr)
-            # Fall back to single-marker correction
-            method = "3d_single_marker"
-            # Compute single-marker homography and warp at max resolution
-            # (replicate single-marker flow here)
-            # Get single-marker H_pix and warped image
-            dst = np.array([
-                [0, 0],
-                [marker_size_mm, 0],
-                [marker_size_mm, marker_size_mm],
-                [0, marker_size_mm]
-            ], dtype=np.float32)
-            H_single, _ = cv2.findHomography(ref_pts0, dst)
-            # mm bounding box
-            corners_img = np.array([[[0, 0]], [[img.shape[1], 0]], [[img.shape[1], img.shape[0]]], [[0, img.shape[0]]]], dtype=np.float32)
-            pts_mm = cv2.perspectiveTransform(corners_img, H_single).reshape(-1, 2)
-            min_x, min_y = pts_mm.min(axis=0)
-            max_x, max_y = pts_mm.max(axis=0)
-            width_mm, height_mm = max_x - min_x, max_y - min_y
-            # compute pixel homography
-            S = np.array([[single_px_per_mm,0,0],[0,single_px_per_mm,0],[0,0,1]],dtype=np.float32)
-            T_mm = np.array([[1,0,-min_x],[0,1,-min_y],[0,0,1]],dtype=np.float32)
-            H_pix_sm = S @ T_mm @ H_single
-            out_w = int(np.ceil(width_mm * single_px_per_mm))
-            out_h = int(np.ceil(height_mm * single_px_per_mm))
-            warped = cv2.warpPerspective(img, H_pix_sm, (out_w, out_h))
-            transform = H_pix_sm
-            mm_per_pixel = 1 / single_px_per_mm
-            scale_x_mm_per_px = mm_per_pixel
-            scale_y_mm_per_px = mm_per_pixel
-            result = {
-                "image": warped,
-                "mm_per_pixel": mm_per_pixel,
-                "scale_x_mm_per_px": scale_x_mm_per_px,
-                "scale_y_mm_per_px": scale_y_mm_per_px,
-                "rotation_degrees": round(rotation_degrees, 3),
-                "transform": transform,
-                "method": method,
-                "notes": [],
-                "marker_positions": marker_positions_template,
-            }
-            return result
+            print("[DEBUG] triple-ArUco scale deviates >5%; proceeding with 3d transform", file=sys.stderr)
 
         # Build and return result immediately
         scale_x_mm_per_px = mm_per_pixel
