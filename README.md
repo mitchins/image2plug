@@ -17,37 +17,16 @@
 
 ---
 
-## 🔧 Typical Workflow
+## 🔧 Typical Workflow (Single Marker)
 
-```plaintext
-1. Capture an image of the hole, placing a scale marker in the frame.
-2. Run the image through the CLI toolchain:
+Example using the `assets/example1/` image set:
 
-   straighten.py → detect_scale.py → contour_to_dxf.py → dxf_to_scad.py
-
-3. Adjust extrusion depth as needed.
-4. Open the SCAD file in OpenSCAD or export to STL.
-5. Print or machine your patch.
-```
-
----
-
-### Example CLI Flow:
-
-```bash
-# Step 1: Straighten the image
-python straighten.py wall_hole.jpg corrected.jpg
-# The command prints a JSON report with image dimensions
-
-# Step 2: Detect the scale from a QR code or marker
-python detect_scale.py --input corrected.jpg --marker_size_mm 50
-
-# Step 3: Extract the hole outline and export to DXF
-python contour_to_dxf.py --input corrected.jpg --scale 0.345 --output hole_shape.dxf
-
-# Step 4: Create an OpenSCAD model from the DXF
-python dxf_to_scad.py --input hole_shape.dxf --extrude 3 --output hole_patch.scad
-```
+| Step             | Command                                              | Output                                                |
+|------------------|------------------------------------------------------|-------------------------------------------------------|
+| **Original**     | (photo)                                              | ![Original](assets/example1/original.jpeg)           |
+| **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png)           |
+| **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png)              |
+| **Render**       | (optional preview)                                   | ![Render](assets/example1/candidate_0_render.png)    |
 
 ---
 
@@ -154,17 +133,6 @@ For the simplest and most reliable workflow, use a single ArUco marker (e.g. 30�
    - Place the marker **close to the hole**, ideally on the same surface plane.  
    - Ensure the marker is not distorted or curled.  
    - Recommended marker: `DICT_4X4_50`, marker ID `0`, generated using the provided script.
-
-### Example
-
-Example image set from `assets/example1/`:
-
-| Step             | Command                                              | Output                                                |
-|------------------|------------------------------------------------------|-------------------------------------------------------|
-| **Original**     | (photo)                                              | ![Original](assets/example1/original.jpeg)           |
-| **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png)           |
-| **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png)              |
-| **Render**       | (optional preview)                                   | ![Render](assets/example1/candidate_0_render.png)    |
 
 ### Typical Parameters
 ```bash
