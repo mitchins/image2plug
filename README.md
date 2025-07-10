@@ -30,6 +30,14 @@ Example using the `assets/example1/` image set:
 
 ---
 
+Alternatively, you can run the entire process in one step using the `workflow.py` script:
+
+```bash
+python workflow.py assets/example1/original.jpeg results --proof
+```
+
+This runs straighten, detection, and outputs a proofing report (`results/proof_report.html`) along with all intermediate and final files.
+
 ## 🔍 Components & Tools Used
 
 - **OpenCV:** For image straightening, edge detection, and contour finding.
