@@ -13,7 +13,7 @@
 - ✅ Export the shape as:
   - 📐 DXF (for CAD/CAM use)
   - 🔩 OpenSCAD script (extruded to a solid)
-- ✅ Enable makers, tinkerers, and repair professionals to fabricate a precise patch without manual tracing.
+- ✅ Allow users to fabricate a precise patch without manual tracing.
 
 ---
 
@@ -36,12 +36,12 @@ For best results, capture your images with the following considerations in mind.
 
 1. **Device:**  
    Use a smartphone or camera with a high-resolution sensor and RAW capture capability.  
-   - Best: iPhone Pro models shooting in **ProRAW**, which preserves fine details and avoids over-sharpening artifacts.  
+   - Recommended: iPhone Pro models shooting in **ProRAW** for maximum detail and minimal processing artifacts.  
    - Other options: Android devices with RAW (DNG) support or compact cameras with macro modes.
 
 2. **Lens:**  
    Select a lens with minimal distortion and close focusing ability.  
-   - Preferred: Telephoto (e.g. 77 mm equivalent) or macro lens, which allow you to fill the frame with the hole and marker while avoiding wide-angle edge distortion.  
+   - Recommended: Telephoto (e.g. 77 mm equivalent) or macro lenses to fill the frame with minimal distortion.  
    - Avoid: Ultra-wide lenses (e.g. 13–26 mm equivalent) unless properly corrected in post.
 
 3. **Lighting:**  
@@ -133,7 +133,7 @@ See the LICENSE file for full details.
 
 ---
 
-## ✨ Example Use Cases
+## Example Use Cases
 
 - DIY wall or furniture repair.
 - Industrial equipment cutouts.
@@ -144,7 +144,7 @@ See the LICENSE file for full details.
 
 ## 🚀 Practical Usage
 
-For the simplest and most reliable workflow, use a single ArUco marker (e.g. 30 mm square) and a smartphone with a tele or macro lens setting and onboard flash. This setup minimizes distortion, shadows, and focus errors.
+The primary workflow uses a single ArUco marker (e.g. 30 mm square) and a smartphone with a telephoto or macro lens and onboard flash. This minimizes distortion and shadows.
 
 ### Typical Parameters
 ```bash
