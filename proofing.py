@@ -86,4 +86,9 @@ class ProofingReport:
         html = self.template.render(tests=self.records)
         index_path = self.output_dir / "index.html"
         index_path.write_text(html)
+        # Also save raw data as JSON
+        import json
+        json_path = self.output_dir / "proofing_report.json"
+        with json_path.open("w", encoding="utf-8") as f:
+            json.dump({"tests": self.records}, f, indent=2)
         return index_path

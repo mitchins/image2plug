@@ -1,3 +1,27 @@
+"""
+straighten.py
+
+This module performs metric perspective correction of an input image using a printed marker template generated
+by generate_template.py. The template consists of three 40×40 mm ArUco markers arranged in a triangle:
+  - Two markers at the bottom-left and bottom-right of the page.
+  - One marker at the top-center of the page.
+If called with --qr, generate_template.py also adds two QR codes:
+  - Encodes the horizontal and vertical distances (h_mm, v_mm) between the bottom markers and the top marker.
+  - Each QR code is a 40×40 mm square placed adjacent to its corresponding marker.
+
+Key assumptions:
+  - All markers (ArUco and QR) are exactly marker_size_mm (default 30 or 40 mm) on each side.
+  - The QR payload is a comma-separated "X,Y" string in millimeters relative to the origin ArUco at (0,0).
+  - The ArUco marker with ID 0 defines the origin (0,0) in the template coordinate system.
+  - Three non-collinear markers (one ArUco + two QR-derived positions) provide sufficient correspondences
+    to solve a full homography for 1 px = 1 mm metric mapping.
+  - If only a single ArUco marker is detected, the code falls back to a single-marker correction that flattens and scales based on that marker alone.
+
+Usage:
+  Call `straighten_image(img, marker_size_mm, marker_positions, ...)` to detect markers, merge QR data,
+  and compute a homography that warps the image into a metric coordinate frame. Falls back to single-marker
+  or identity flows when fewer markers are detected. It explicitly supports single-marker correction when only one marker is found.
+"""
 import os
 from pathlib import Path
 import argparse
@@ -7,12 +31,12 @@ from pathlib import Path
 import json
 import sys
 
-# Placeholder template triangle positions for three-marker 3D correction (in mm)
-TEMPLATE_MARKER_POSITIONS = {
-    0: (0.0, 0.0),
-    1: (100.0, 0.0),    # placeholder X distance
-    2: (50.0, 86.6),    # placeholder Y for equilateral triangle
-}
+# QR detection pre-processing (tunable)
+QR_HIST_EQUALIZE = True
+QR_ADAPTIVE_THRESH = True
+QR_BLUR_KERNEL = (5, 5)
+QR_THRESH_BLOCKSIZE = 51
+QR_THRESH_C = 5
 
 def order_points(pts):
     pts = np.array(pts, dtype="float32")
@@ -127,27 +151,48 @@ def _rectify_from_markers(img: np.ndarray, corners, ids, marker_size_mm: float, 
     # Find the homography matrix using RANSAC
     H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, ransacReprojThreshold=3.0)
     
-    # Determine output image size based on destination points
-    dst_pts_transformed = cv2.perspectiveTransform(
-        np.array([[[0, 0]], [[img.shape[1], 0]], [[img.shape[1], img.shape[0]]], [[0, img.shape[0]]]], dtype=np.float32), H)
-    
-    min_x = np.min(dst_pts_transformed[:, 0, 0])
-    min_y = np.min(dst_pts_transformed[:, 0, 1])
-    max_x = np.max(dst_pts_transformed[:, 0, 0])
-    max_y = np.max(dst_pts_transformed[:, 0, 1])
-    
-    width = int(np.ceil(max_x - min_x))
-    height = int(np.ceil(max_y - min_y))
-    
-    # Apply perspective warp
-    warped = cv2.warpPerspective(img, H, (width, height))
-    
-    # After warping, output pixels represent millimeters directly
-    mm_per_px = 1.0
-    
-    return warped, H, mm_per_px, 0.0
+    # Determine output image size in mm based on destination points
+    # Compute bounding box in mm
+    min_x = np.min(dst_pts[:,0])
+    min_y = np.min(dst_pts[:,1])
+    max_x = np.max(dst_pts[:,0])
+    max_y = np.max(dst_pts[:,1])
+    width = max_x - min_x
+    height = max_y - min_y
 
-def straighten_image(img, marker_size_mm=30.0, marker_positions=None, camera_matrix=None, dist_coeffs=None):
+    # Translate mm-coordinates so bounding box starts at (0,0)
+    T_mm = np.array([
+        [1, 0, -min_x],
+        [0, 1, -min_y],
+        [0, 0, 1]
+    ], dtype=np.float32)
+
+    # Estimate pixel-per-mm scale from first marker's edge in original image
+    ref_pts = corners[0][0]
+    pixel_edge = np.linalg.norm(ref_pts[1] - ref_pts[0])
+    px_per_mm = pixel_edge / marker_size_mm
+
+    # Build scaling matrix to convert mm units to pixels
+    S = np.array([
+        [px_per_mm, 0,         0],
+        [0,         px_per_mm, 0],
+        [0,         0,         1]
+    ], dtype=np.float32)
+
+    # Compose the final homography for pixel warp (with mm translation)
+    H_pix = S @ T_mm @ H
+
+    # Compute output pixel dimensions
+    out_w = int(np.ceil(width * px_per_mm))
+    out_h = int(np.ceil(height * px_per_mm))
+
+    # Apply perspective warp with pixel scaling
+    warped = cv2.warpPerspective(img, H_pix, (out_w, out_h))
+
+    # Return warped, H_pix, mm_per_pixel, angle (angle=0.0 for now)
+    return warped, H_pix, 1/px_per_mm, 0.0
+
+def straighten_image(img, marker_size_mm=30.0, marker_positions=None, camera_matrix=None, dist_coeffs=None, qr_mode="all"):
     """
     Perform perspective correction using ArUco markers.
     Flow paths:
@@ -159,17 +204,133 @@ def straighten_image(img, marker_size_mm=30.0, marker_positions=None, camera_mat
     The selected method is returned in the 'method' field of the result metadata.
     """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # Optional QR pre-processing based on qr_mode
+    proc_qr = gray
+    if qr_mode in ("eq", "all"):
+        proc_qr = cv2.equalizeHist(proc_qr)
+    if qr_mode in ("thresh", "all"):
+        blur = cv2.GaussianBlur(proc_qr, QR_BLUR_KERNEL, 0)
+        proc_qr = cv2.adaptiveThreshold(
+            blur, 255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            QR_THRESH_BLOCKSIZE,
+            QR_THRESH_C
+        )
+    # Debug: save pre-processed QR image
+    debug_path = Path("debug_proc_qr.png")
+    cv2.imwrite(str(debug_path), proc_qr)
+
+    # --- Marker detection ---
+    # 1) Detect only ArUco origin marker (ID 0)
     dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-    detector = cv2.aruco.ArucoDetector(dictionary)
-    corners, ids, _ = detector.detectMarkers(gray)
-    
+    corners_all, ids_all, _ = cv2.aruco.detectMarkers(gray, dictionary)
+    if ids_all is not None:
+        ids_all = ids_all.flatten().tolist()
+    else:
+        ids_all = []
+
+    # --- Triple-ArUco A4 template mode (IDs 0,1,2) ---
+    template_ids = [0, 1, 2]
+    if all(id_val in ids_all for id_val in template_ids):
+        # Extract corners in the order [0,1,2]
+        corners_tri = [corners_all[ids_all.index(i)] for i in template_ids]
+        ids_tri = [[i] for i in template_ids]
+        # Known A4 template positions in mm: marker_size_mm apart
+        # A4: margin 10mm, marker center offset = marker_size_mm/2
+        # Horizontal half-spacing = (210 - 2*10 - marker_size_mm)/2
+        half_h = (210.0 - 20.0 - marker_size_mm) / 2.0
+        v = 297.0 - 10.0 - marker_size_mm/2.0  # vertical distance from origin to bottom markers
+        marker_positions_template = {
+            0: (0.0,        0.0),
+            1: (-half_h,    v),
+            2: ( half_h,    v),
+        }
+        # Perform rectification
+        warped, M, mm_per_pixel, angle = _rectify_from_markers(
+            img, corners_tri, ids_tri, marker_size_mm, marker_positions_template
+        )
+        rotation_degrees = float(np.degrees(angle))
+        transform = M
+        method = "aruco_3d"
+        print("[DEBUG] using triple-ArUco A4 template branch", file=sys.stderr)
+        # Build and return result immediately
+        scale_x_mm_per_px = mm_per_pixel
+        scale_y_mm_per_px = mm_per_pixel
+        result = {
+            "image": warped,
+            "mm_per_pixel": mm_per_pixel,
+            "scale_x_mm_per_px": scale_x_mm_per_px,
+            "scale_y_mm_per_px": scale_y_mm_per_px,
+            "rotation_degrees": round(rotation_degrees, 3),
+            "transform": transform,
+            "method": method,
+            "notes": [],
+            "marker_positions": marker_positions_template,
+        }
+        return result
+
+    # Keep only the origin ArUco marker (ID 0)
+    origin_corners = []
+    if corners_all is not None and ids_all:
+        for idx, mid in enumerate(ids_all):
+            if mid == 0:
+                origin_corners.append(corners_all[idx])
+    # Debug origin detection
+    print(f"[DEBUG] ArUco origin found: {len(origin_corners)} marker(s) with ID 0", file=sys.stderr)
+
+    # Fallback: if no ID-0 marker, but other ArUco markers exist, pick the topmost as origin
+    if not origin_corners and corners_all is not None and ids_all:
+        # compute centers
+        centers = [c[0].mean(axis=0) for c in corners_all]
+        top_idx = int(np.argmin([pt[1] for pt in centers]))
+        origin_corners = [corners_all[top_idx]]
+        ids = [[ids_all[top_idx]]]
+        print(f"[DEBUG] Fallback ArUco origin: id={ids_all[top_idx]} center={centers[top_idx]}", file=sys.stderr)
+    else:
+        # maintain ids list corresponding to origin_corners
+        ids = [[0]] * len(origin_corners) if origin_corners else []
+
+    # 2) Detect QR code corners and decode (always attempt, even if decode fails)
+    qr_detector = cv2.QRCodeDetector()
+    retval, decoded_info, qr_corners, _ = qr_detector.detectAndDecodeMulti(proc_qr)
+    qr_info = []
+    if qr_corners is not None and len(qr_corners) > 0:
+        for data, corner in zip(decoded_info, qr_corners):
+            qr_info.append((data, corner))
+    # Debug QR raw detection
+    print(f"[DEBUG] QR candidates found: {len(qr_info)}", file=sys.stderr)
+
+    # 3) Merge valid QR decodes
+    corners = origin_corners.copy()
+    # ids already set above (may be fallback or standard)
+    marker_positions = {} if marker_positions is None else marker_positions
+    qr_count = 0
+    for data, corner in qr_info:
+        if data:
+            try:
+                x_mm, y_mm = map(float, data.strip().split(","))
+                synthetic_id = 1000 + qr_count
+                marker_positions[synthetic_id] = (x_mm, y_mm)
+                corners.append(np.array([corner], dtype=np.float32))
+                ids.append([synthetic_id])
+                qr_count += 1
+                print(f"[DEBUG] QR decoded: id={synthetic_id}, pos=({x_mm},{y_mm})", file=sys.stderr)
+            except ValueError:
+                print(f"[DEBUG] QR decode invalid: '{data}'", file=sys.stderr)
+        else:
+            print(f"[DEBUG] QR decode failed for corners: {corner.tolist()}", file=sys.stderr)
+
+    # Final debug summary
+    print(f"[DEBUG] Total markers: origin={len(origin_corners)}, qr_valid={qr_count}, corners={len(corners)}, ids={ids}", file=sys.stderr)
+
     notes = []
     transform = None
     rotation_degrees = 0.0
-    
-    if ids is not None and len(corners) >= 3:
-        # Three-marker template-based correction
-        marker_positions = TEMPLATE_MARKER_POSITIONS
+
+    # Choose correction path
+    if len(corners) >= 3:
+        # three-marker flow
         warped, M, mm_per_pixel, angle = _rectify_from_markers(
             img, corners, ids, marker_size_mm, marker_positions
         )
@@ -181,92 +342,65 @@ def straighten_image(img, marker_size_mm=30.0, marker_positions=None, camera_mat
         # For robustness, return the original image when the warped output is too small
         if warped.shape[1] < 0.75 * img.shape[1] or warped.shape[0] < 0.75 * img.shape[0]:
             warped = img
-        
-    elif ids is not None and len(corners) >= 1:
-        # Single-marker 3D correction
+
+    elif len(corners) == 1:
+        # single-marker flow
         ref_pts = corners[0][0].astype(np.float32)
-        
-        # Compute mm_per_pixel from marker size and detected pixel width
         pixel_width = float(np.linalg.norm(ref_pts[0] - ref_pts[1]))
         mm_per_pixel = marker_size_mm / pixel_width
-        
         dst = np.array([
             [0, 0],
             [marker_size_mm, 0],
             [marker_size_mm, marker_size_mm],
             [0, marker_size_mm]
         ], dtype=np.float32)
-        
         H, _ = cv2.findHomography(ref_pts, dst)
-        
-        # Compute pixel-preserving warp: H maps pixel->mm, scale back to pixel units
         h, w = img.shape[:2]
         corners_img = np.array([[[0, 0]], [[w, 0]], [[w, h]], [[0, h]]], dtype=np.float32)
-        
-        # Compute bounding box in mm coordinates
         pts_mm = cv2.perspectiveTransform(corners_img, H).reshape(-1, 2)
         min_x_mm, min_y_mm = pts_mm.min(axis=0)
         max_x_mm, max_y_mm = pts_mm.max(axis=0)
-        
-        # Translation in mm to bring min to origin
         T_mm = np.array([
             [1, 0, -min_x_mm],
             [0, 1, -min_y_mm],
             [0, 0, 1]
         ], dtype=np.float32)
-        
-        # Scale mm back to pixel units
         S_px = np.array([
             [1/mm_per_pixel, 0, 0],
             [0, 1/mm_per_pixel, 0],
             [0, 0, 1]
         ], dtype=np.float32)
-        
-        # Combined homography: pixel->mm->translate->scale->pixel
         H_pix = S_px @ T_mm @ H
-        
-        # Determine output pixel extents
         pts_px = cv2.perspectiveTransform(corners_img, H_pix).reshape(-1, 2)
         min_x_px, min_y_px = pts_px.min(axis=0)
         max_x_px, max_y_px = pts_px.max(axis=0)
-        
         out_w_px = int(np.ceil(max_x_px - min_x_px))
         out_h_px = int(np.ceil(max_y_px - min_y_px))
-        
-        # Final translation to shift to positive pixel coords
         T_px = np.array([
             [1, 0, -min_x_px],
             [0, 1, -min_y_px],
             [0, 0, 1]
         ], dtype=np.float32)
-        
         H_final = T_px @ H_pix
         warped = cv2.warpPerspective(img, H_final, (out_w_px, out_h_px))
-        
-        # Improved cropping for single marker case
         h0, w0 = img.shape[:2]
         corners_img = np.array([[[0, 0]], [[w0, 0]], [[w0, h0]], [[0, h0]]], dtype=np.float32)
         pts = cv2.perspectiveTransform(corners_img, H_final).reshape(-1, 2)
-        
-        # Use the improved cropping function
         x, y, w, h = find_largest_rotated_crop(warped, pts)
         warped = warped[y:y+h, x:x+w]
-        
         transform = H_final
         method = "3d_single_marker"
         print("[DEBUG] using 3d_single_marker branch", file=sys.stderr)
-        
     else:
-        # No markers: fallback
+        # identity
         warped = img
         mm_per_pixel = None
         method = "identity"
         print("[DEBUG] using identity branch (no markers)", file=sys.stderr)
         notes.append("No ArUco markers detected; metric correction skipped")
-    
+
     scale_x_mm_per_px = mm_per_pixel
     scale_y_mm_per_px = mm_per_pixel
-    
     result = {
         "image": warped,
         "mm_per_pixel": mm_per_pixel,
@@ -278,7 +412,6 @@ def straighten_image(img, marker_size_mm=30.0, marker_positions=None, camera_mat
         "notes": notes,
         "marker_positions": marker_positions,
     }
-    
     return result
 
 def main():
@@ -286,6 +419,12 @@ def main():
     parser.add_argument("input", help="Input image path")
     parser.add_argument("output", help="Output straightened image path")
     parser.add_argument("--marker-size-mm", type=float, default=30.0, help="Size of ArUco marker in mm")
+    parser.add_argument(
+        "--qr-mode",
+        choices=["raw", "eq", "thresh", "all"],
+        default="raw",
+        help="QR pre-processing mode: raw=no preprocess; eq=hist equalization only; thresh=adaptive threshold only; all=both"
+    )
     args = parser.parse_args()
     
     input_path = Path(args.input)
@@ -295,7 +434,7 @@ def main():
     if img is None:
         raise SystemExit(f"Could not read input image: {input_path}")
     
-    res = straighten_image(img, marker_size_mm=args.marker_size_mm)
+    res = straighten_image(img, marker_size_mm=args.marker_size_mm, qr_mode=args.qr_mode)
     warped = res["image"]
     mm_per_pixel = res["mm_per_pixel"]
     notes = res["notes"]

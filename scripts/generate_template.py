@@ -48,13 +48,15 @@ def generate_template(
     top_y = margin_px + marker_size_px // 2
     center_x = width_px // 2
 
-    positions = [
-        (left_x - marker_size_px // 2, base_y - marker_size_px // 2),
-        (right_x - marker_size_px // 2, base_y - marker_size_px // 2),
-        (center_x - marker_size_px // 2, top_y - marker_size_px // 2),
-    ]
+    # Map marker IDs to positions
+    marker_positions_px = {
+        0: (center_x - marker_size_px // 2, top_y - marker_size_px // 2),
+        1: (left_x - marker_size_px // 2, base_y - marker_size_px // 2),
+        2: (right_x - marker_size_px // 2, base_y - marker_size_px // 2),
+    }
 
-    for pos, mk in zip(positions, markers):
+    for mid, mk in zip(range(3), markers):
+        pos = marker_positions_px[mid]
         img.paste(mk, (int(pos[0]), int(pos[1])))
 
     h_mm = (right_x - left_x) * 25.4 / dpi
