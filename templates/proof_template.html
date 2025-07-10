@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>Proof Report</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
 body{font-family:sans-serif;}
 pre{background:#f5f5f5;padding:5px;}
@@ -10,17 +12,17 @@ img{max-width:300px;}
 .candidate{border:1px solid #ccc;margin:5px;padding:5px;}
 </style>
 </head>
-<body>
-<h1>Proof Report</h1>
+<body class="container my-4">
+<h1 class="mb-4">Proof Report</h1>
 <h2>Index</h2>
-<ul>
+<ul class="list-group mb-4">
 {% for test in tests %}
-<li><a href="#{{ test.name }}">{{ test.name }}</a></li>
+<li class="list-group-item"><a href="#{{ test.name }}">{{ test.name }}</a></li>
 {% endfor %}
 </ul>
 {% for test in tests %}
 <h2 id="{{ test.name }}">{{ test.name }}</h2>
-<table>
+<table class="table table-bordered table-sm">
   <thead>
     <tr>
       <th>Original</th>
@@ -31,11 +33,11 @@ img{max-width:300px;}
   </thead>
   <tbody>
     <tr>
-      <td><img src="{{ test.source_image }}" alt="source"></td>
-      <td><img src="{{ test.corrected_image }}" alt="corrected"></td>
+      <td><img src="{{ test.source_image }}" alt="source" class="img-fluid"></td>
+      <td><img src="{{ test.corrected_image }}" alt="corrected" class="img-fluid"></td>
       <td>
         {% if test.preview_image %}
-          <img src="{{ test.preview_image }}" alt="preview">
+          <img src="{{ test.preview_image }}" alt="preview" class="img-fluid">
         {% endif %}
       </td>
       <td><pre>{{ test.phase1 | tojson(indent=2) }}</pre></td>
@@ -43,7 +45,7 @@ img{max-width:300px;}
   </tbody>
 </table>
 <h3>Candidates</h3>
-<table>
+<table class="table table-bordered table-sm">
   <thead>
     <tr>
       <th>Crop</th>
@@ -57,16 +59,19 @@ img{max-width:300px;}
     <tr>
       <td>
         {% if cand.crop_png %}
-          <img src="{{ cand.crop_png }}" alt="Crop">
+          <img src="{{ cand.crop_png }}" alt="Crop" class="img-fluid">
         {% endif %}
       </td>
       <td>
         {% if cand.preview_png %}
-          <img src="{{ cand.preview_png }}" alt="Render">
+          <img src="{{ cand.preview_png }}" alt="Render" class="img-fluid">
         {% endif %}
       </td>
       <td>
-        <a href="{{ cand.dxf_file }}" download>Download</a>
+        <a href="{{ cand.dxf_file }}" class="btn btn-sm btn-primary" download>
+          <span class="material-icons align-middle">file_download</span>
+          DXF
+        </a>
       </td>
       <td>
         <pre>{{ cand | tojson(indent=2) }}</pre>

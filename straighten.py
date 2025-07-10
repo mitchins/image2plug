@@ -270,8 +270,9 @@ def straighten_image(img, marker_size_mm=30.0, marker_positions=None, camera_mat
         ref_pts0 = corners_tri[0][0].astype(np.float32)
         edge_px = float(np.linalg.norm(ref_pts0[1] - ref_pts0[0]))
         single_px_per_mm = edge_px / marker_size_mm
-        if abs(single_px_per_mm - mm_per_pixel) / single_px_per_mm > 0.05:
-            print("[DEBUG] triple-ArUco scale deviates >5%; falling back to single-marker", file=sys.stderr)
+        diff_ratio = abs((1 / mm_per_pixel) - single_px_per_mm) / single_px_per_mm
+        if diff_ratio > 0.5:
+            print("[DEBUG] triple-ArUco scale deviates significantly; falling back to single-marker", file=sys.stderr)
             # Fall back to single-marker correction
             method = "3d_single_marker"
             # Compute single-marker homography and warp at max resolution
