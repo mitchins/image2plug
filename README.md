@@ -38,9 +38,9 @@ Step by step example using the `assets/example1/` image set:
 | **Original**     | (photo)                                              | ![Original](assets/example1/original.jpeg)           |
 | **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png)           |
 | **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png)              |
-| **Render**       | (DXF preview)                                        | ![Render](assets/example1/candidate_0_2d-preview.png)    |
-| **OpenSCAD**     | `candidate_0.scad`                                   | *(extrudes DXF by default 10&nbsp;mm)*                |
-| **SCAD Preview** | (optional 3D)                                        | *(generated via OpenSCAD)*                           |
+| **Render**       | (DXF preview)                                        | ![2D Preview](assets/example1/candidate_0_2d-preview.png)    |
+| **OpenSCAD**     | `assets/example1/candidate_0.scad`                    | *(extrudes DXF by default 10&nbsp;mm)*                |
+| **3D Preview**   | (OpenSCAD output)                                    | ![3D Preview](assets/example1/candidate_0_3d-preview.png)    |
 
 ---
 
