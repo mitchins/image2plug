@@ -23,7 +23,7 @@ def _generate_scad_preview(scad: Path, preview: Path) -> bool:
             "--autocenter",
             "--viewall",
             "--imgsize=400,300",
-            "--camera=0,0,0,15,0,30,200",
+            "--camera=0,0,0,45,0,0,200",
             "--render",
             "-o",
             str(preview),
@@ -70,7 +70,7 @@ class ProofingReport:
             for cand in data.get("phase2", {}).get("candidates", []):
                 dxf_path = Path(cand.get("dxf_path", ""))
                 if dxf_path.exists():
-                    preview = dxf_path.with_stem(f"{dxf_path.stem}_render").with_suffix(".png")
+                    preview = dxf_path.with_stem(f"{dxf_path.stem}_2d-preview").with_suffix(".png")
                     try:
                         doc = ezdxf.readfile(str(dxf_path))
                         matplotlib.qsave(doc.modelspace(), str(preview))
@@ -99,7 +99,7 @@ class ProofingReport:
                     else:
                         cand["scad_file"] = os.path.relpath(scad_path, self.output_dir)
 
-                    preview_scad = scad_path.with_stem(f"{scad_path.stem}_preview").with_suffix(".png")
+                    preview_scad = scad_path.with_stem(f"{scad_path.stem}_3d-preview").with_suffix(".png")
                     if _generate_scad_preview(scad_path, preview_scad):
                         if self.copy_assets and self.assets_dir is not None:
                             target_p = self.assets_dir / preview_scad.name
