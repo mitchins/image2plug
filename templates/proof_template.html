@@ -50,7 +50,7 @@
     <tr>
       <th scope="col">Crop</th>
       <th scope="col">Preview</th>
-      <th scope="col">DXF</th>
+      <th scope="col">Files</th>
       <th scope="col">Details</th>
     </tr>
   </thead>
@@ -68,10 +68,16 @@
         {% endif %}
       </td>
       <td>
-        <a href="{{ cand.dxf_file }}" download class="btn btn-outline-primary btn-sm">
+        <a href="{{ cand.dxf_file }}" download class="btn btn-outline-primary btn-sm d-block mb-1">
           <span class="material-icons align-middle" style="font-size:16px;">download</span>
           DXF
         </a>
+        {% if cand.scad_file %}
+        <a href="{{ cand.scad_file }}" download class="btn btn-outline-secondary btn-sm d-block">
+          <span class="material-icons align-middle" style="font-size:16px;">download</span>
+          SCAD
+        </a>
+        {% endif %}
       </td>
       <td>
         <pre>{{ cand | tojson(indent=2) }}</pre>

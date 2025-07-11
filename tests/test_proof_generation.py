@@ -16,3 +16,6 @@ def test_proof_generation(tmp_path):
     # Ensure that a SCAD file was generated for the candidate
     scads = list((output_dir / "candidates").glob("*.scad"))
     assert scads, "No SCAD output generated"
+    # Verify the proof report links to the SCAD output
+    html = (output_dir / "index.html").read_text()
+    assert any(scad.name in html for scad in scads)

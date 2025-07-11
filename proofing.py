@@ -70,6 +70,15 @@ class ProofingReport:
                     else:
                         cand["dxf_file"] = os.path.relpath(dxf_path, self.output_dir)
 
+                scad_path = Path(cand.get("scad_path", ""))
+                if scad_path.exists():
+                    if self.copy_assets and self.assets_dir is not None:
+                        target_scad = self.assets_dir / scad_path.name
+                        shutil.copy(scad_path, target_scad)
+                        cand["scad_file"] = f"assets/{scad_path.name}"
+                    else:
+                        cand["scad_file"] = os.path.relpath(scad_path, self.output_dir)
+
                 crop_path = Path(cand.get("image_crop", ""))
                 if crop_path.exists():
                     if self.copy_assets and self.assets_dir is not None:
