@@ -66,6 +66,9 @@
         {% if cand.preview_png %}
           <img src="{{ cand.preview_png }}" alt="Render" class="img-fluid">
         {% endif %}
+        {% if cand.scad_preview_png %}
+          <img src="{{ cand.scad_preview_png }}" alt="3D" class="img-fluid mt-1">
+        {% endif %}
       </td>
       <td>
         <a href="{{ cand.dxf_file }}" download class="btn btn-outline-primary btn-sm d-block mb-1">

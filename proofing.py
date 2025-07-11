@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 from pathlib import Path
 import os
 from typing import Any, Dict
@@ -12,6 +13,25 @@ except Exception:  # pragma: no cover - optional dependency
     ezdxf = None
 
 from jinja2 import Environment, FileSystemLoader
+
+
+def _generate_scad_preview(scad: Path, preview: Path) -> bool:
+    """Render a SCAD file to a PNG preview using openscad."""
+    try:
+        subprocess.run([
+            "openscad",
+            "--autocenter",
+            "--viewall",
+            "--imgsize=400,300",
+            "--camera=0,0,0,15,0,30,200",
+            "--render",
+            "-o",
+            str(preview),
+            str(scad),
+        ], check=False, capture_output=True)
+        return preview.exists()
+    except Exception:
+        return False
 
 
 class ProofingReport:
@@ -78,6 +98,15 @@ class ProofingReport:
                         cand["scad_file"] = f"assets/{scad_path.name}"
                     else:
                         cand["scad_file"] = os.path.relpath(scad_path, self.output_dir)
+
+                    preview_scad = scad_path.with_stem(f"{scad_path.stem}_preview").with_suffix(".png")
+                    if _generate_scad_preview(scad_path, preview_scad):
+                        if self.copy_assets and self.assets_dir is not None:
+                            target_p = self.assets_dir / preview_scad.name
+                            shutil.copy(preview_scad, target_p)
+                            cand["scad_preview_png"] = f"assets/{preview_scad.name}"
+                        else:
+                            cand["scad_preview_png"] = os.path.relpath(preview_scad, self.output_dir)
 
                 crop_path = Path(cand.get("image_crop", ""))
                 if crop_path.exists():

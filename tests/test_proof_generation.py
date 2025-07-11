@@ -19,3 +19,7 @@ def test_proof_generation(tmp_path):
     # Verify the proof report links to the SCAD output
     html = (output_dir / "index.html").read_text()
     assert any(scad.name in html for scad in scads)
+    # Ensure a SCAD preview image was created and referenced
+    previews = list((output_dir / "candidates").glob("*_preview.png"))
+    assert previews, "No SCAD preview generated"
+    assert any(preview.name in html for preview in previews)
