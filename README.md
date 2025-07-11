@@ -33,13 +33,16 @@ This runs straighten, detection, and outputs a proofing report (`results/proof_r
 
 Step by step example using the `assets/example1/` image set:
 
-| Step             | Command                                              | Output                                                |
-|------------------|------------------------------------------------------|-------------------------------------------------------|
-| **Original**     | (photo)                                              | ![Original](assets/example1/original.jpeg)           |
-| **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png)           |
-| **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png)              |
-| **Extract 2D Outline**   | Creates a .dxf CAD file                                    | ![2D Preview](assets/example1/candidate_0_2d-preview.png)    |
-| **Extrude 3D Shape**       | Creates a .scad 3D object script                    | ![Extruded](assets/example1/candidate_0_3d-preview.png)      |
+| Step                   | Command                                                      | Output                                                |
+|------------------------|--------------------------------------------------------------|-------------------------------------------------------|
+| **Original**           | (photo)                                                      | ![Original](assets/example1/original.jpeg)           |
+| **Straighten**         | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png) |
+| **Detect Candidates**  | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png) |
+
+| Output File           | Description                           | Example                                                |
+|----------------------|---------------------------------------|--------------------------------------------------------|
+| `candidate_0.dxf`    | Extracted 2D outline (DXF format)    | ![2D Preview](assets/example1/candidate_0_2d-preview.png) |
+| `candidate_0.scad`   | 3D extrusion script (OpenSCAD format) | ![Extruded](assets/example1/candidate_0_3d-preview.png) |
 
 ---
 
