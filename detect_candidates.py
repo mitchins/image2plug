@@ -75,6 +75,12 @@ def contour_to_dxf(contour: np.ndarray, path: Path) -> None:
     doc.saveas(str(path))
 
 
+def dxf_to_scad(dxf_path: Path, scad_path: Path, height: float) -> None:
+    """Generate a simple OpenSCAD script extruding the DXF profile."""
+    content = f"linear_extrude(height = {height}) import(\"{dxf_path.name}\");\n"
+    scad_path.write_text(content)
+
+
 def filter_candidates(
     contours: List[np.ndarray],
     marker_boxes: List[Tuple[int, int, int, int]],
@@ -186,6 +192,12 @@ def main() -> None:
     parser.add_argument("metadata", type=Path, help="Metadata JSON from straighten.py")
     parser.add_argument("output_dir", type=Path, help="Directory to write results")
     parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    parser.add_argument(
+        "--extrude-height",
+        type=float,
+        default=10.0,
+        help="Extrusion height for generated OpenSCAD files (mm)",
+    )
     args = parser.parse_args()
 
     # Step 1: Load image and metadata
@@ -227,11 +239,15 @@ def main() -> None:
         dxf_path = args.output_dir / f"candidate_{idx}.dxf"
         contour_to_dxf(contour, dxf_path)
 
+        scad_path = args.output_dir / f"candidate_{idx}.scad"
+        dxf_to_scad(dxf_path, scad_path, args.extrude_height)
+
         size_mm = [round(w * mm_per_px, 3), round(h * mm_per_px, 3)] if mm_per_px is not None else None
 
         candidates_output.append({
             "image_crop": str(crop_path),
             "dxf_path": str(dxf_path),
+            "scad_path": str(scad_path),
             "bbox": [int(x), int(y), int(w), int(h)],
             "size": size_mm,
         })

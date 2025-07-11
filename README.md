@@ -25,6 +25,7 @@ You can run the entire process in one step using the `workflow.py` script:
 ```bash
 python workflow.py assets/example1/original.jpeg results --proof
 ```
+By default this extrudes detected shapes by **10 mm**. You can specify a custom height with `--extrude-height`.
 
 This runs straighten, detection, and outputs a proofing report (`results/proof_report.html`) along with all intermediate and final files.
 
@@ -32,12 +33,16 @@ This runs straighten, detection, and outputs a proofing report (`results/proof_r
 
 Step by step example using the `assets/example1/` image set:
 
-| Step             | Command                                              | Output                                                |
-|------------------|------------------------------------------------------|-------------------------------------------------------|
-| **Original**     | (photo)                                              | ![Original](assets/example1/original.jpeg)           |
-| **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png)           |
-| **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png)              |
-| **Render**       | (optional preview)                                   | ![Render](assets/example1/candidate_0_render.png)    |
+| Step                   | Command                                                      | Output                                                |
+|------------------------|--------------------------------------------------------------|-------------------------------------------------------|
+| **Original**           | (photo)                                                      | ![Original](assets/example1/original.jpeg)           |
+| **Straighten**         | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png) |
+| **Detect Candidates**  | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png) |
+
+| Output File           | Description                           | Example                                                |
+|----------------------|---------------------------------------|--------------------------------------------------------|
+| `candidate_0.dxf`    | Extracted 2D outline (DXF format)    | ![2D Preview](assets/example1/candidate_0_2d-preview.png) |
+| `candidate_0.scad`   | 3D extrusion script (OpenSCAD format) | ![Extruded](assets/example1/candidate_0_3d-preview.png) |
 
 ---
 

@@ -38,6 +38,12 @@ def main():
         action="store_true",
         help="Generate an HTML proof report in the output directory",
     )
+    parser.add_argument(
+        "--extrude-height",
+        type=float,
+        default=10.0,
+        help="Extrusion height for generated OpenSCAD files (mm)",
+    )
     args = parser.parse_args()
 
     out_dir = args.output_dir
@@ -53,7 +59,15 @@ def main():
         phase1 = json.loads(phase1_out)
 
         cand_dir = out_dir / "candidates"
-        phase2_out = run(["python", "detect_candidates.py", str(corrected), str(meta_json), str(cand_dir)])
+        phase2_out = run([
+            "python",
+            "detect_candidates.py",
+            str(corrected),
+            str(meta_json),
+            str(cand_dir),
+            "--extrude-height",
+            str(args.extrude_height),
+        ])
         phase2 = json.loads(phase2_out)
 
         # Determine preview image for proofing (threshold variant)
