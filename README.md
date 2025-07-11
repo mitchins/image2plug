@@ -38,8 +38,8 @@ Step by step example using the `assets/example1/` image set:
 | **Original**     | (photo)                                              | ![Original](assets/example1/original.jpeg)           |
 | **Straighten**   | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png)           |
 | **Detect**       | `python detect_candidates.py assets/example1/corrected.png results --threshold` | ![Crop](assets/example1/candidate_0.png)              |
-| **Extract DXF**   | (shape extraction)                                    | ![2D Preview](assets/example1/candidate_0_2d-preview.png)    |
-| **Extrude**       | `assets/example1/candidate_0.scad`                    | ![Extruded](assets/example1/candidate_0_3d-preview.png)      |
+| **Extract 2D Outline**   | Creates a .dxf CAD file                                    | ![2D Preview](assets/example1/candidate_0_2d-preview.png)    |
+| **Extrude 3D Shape**       | Creates a .scad 3D object script                    | ![Extruded](assets/example1/candidate_0_3d-preview.png)      |
 
 ---
 
