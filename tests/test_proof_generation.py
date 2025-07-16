@@ -10,6 +10,8 @@ def test_proof_generation(tmp_path):
         "assets/reference_image_us_letter.png",
         str(output_dir),
         "--proof",
+        "--smooth",
+        "--measure-error",
     ], check=True)
 
     assert (output_dir / "index.html").exists()

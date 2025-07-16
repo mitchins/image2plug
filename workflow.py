@@ -49,6 +49,11 @@ def main():
         action="store_true",
         help="Regress contours to smooth vector shapes",
     )
+    parser.add_argument(
+        "--measure-error",
+        action="store_true",
+        help="Calculate mean squared error when using --smooth",
+    )
     args = parser.parse_args()
 
     out_dir = args.output_dir
@@ -73,6 +78,7 @@ def main():
             "--extrude-height",
             str(args.extrude_height),
             *( ["--smooth"] if args.smooth else [] ),
+            *( ["--measure-error"] if args.measure_error else [] ),
         ])
         phase2 = json.loads(phase2_out)
 

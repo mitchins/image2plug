@@ -214,7 +214,15 @@ def test_detect_candidates_with_smoothing(tmp_path, proof_recorder):
 
     output_dir = tmp_path / 'candidates_smooth'
     res2 = subprocess.run(
-        ['python', 'detect_candidates.py', str(corrected), str(meta_json), str(output_dir), '--smooth'],
+        [
+            'python',
+            'detect_candidates.py',
+            str(corrected),
+            str(meta_json),
+            str(output_dir),
+            '--smooth',
+            '--measure-error',
+        ],
         capture_output=True,
         text=True,
         check=True,
@@ -227,6 +235,7 @@ def test_detect_candidates_with_smoothing(tmp_path, proof_recorder):
     poly = list(doc.modelspace().query('LWPOLYLINE'))[0]
     points = list(poly.get_points())
     assert len(points) <= 250
+    assert 'regression_mse' in data['candidates'][0]
 
     proof_recorder({
         'name': 'test_detect_candidates_with_smoothing',

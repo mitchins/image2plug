@@ -51,6 +51,7 @@
       <th scope="col">Crop</th>
       <th scope="col">Preview</th>
       <th scope="col">Files</th>
+      <th scope="col">MSE</th>
       <th scope="col">Details</th>
     </tr>
   </thead>
@@ -80,6 +81,11 @@
           <span class="material-icons align-middle" style="font-size:16px;">download</span>
           SCAD
         </a>
+        {% endif %}
+      </td>
+      <td>
+        {% if cand.regression_mse is defined %}
+          {{ '%.5f' % cand.regression_mse }}
         {% endif %}
       </td>
       <td>

@@ -84,7 +84,7 @@ def smooth_contour(
     return out.reshape(-1, 1, 2).astype(np.float32)
 
 
-def contour_to_dxf(contour: np.ndarray, path: Path, *, smooth: bool = False) -> None:
+def contour_to_dxf(contour: np.ndarray, path: Path, *, smooth: bool = False) -> np.ndarray:
     if smooth:
         contour = smooth_contour(contour)
     points = contour.reshape(-1, 2)
@@ -92,12 +92,27 @@ def contour_to_dxf(contour: np.ndarray, path: Path, *, smooth: bool = False) -> 
     msp = doc.modelspace()
     msp.add_lwpolyline(points.tolist(), close=True)
     doc.saveas(str(path))
+    return contour
 
 
 def dxf_to_scad(dxf_path: Path, scad_path: Path, height: float) -> None:
     """Generate a simple OpenSCAD script extruding the DXF profile."""
     content = f"linear_extrude(height = {height}) import(\"{dxf_path.name}\");\n"
     scad_path.write_text(content)
+
+
+def contour_mse(original: np.ndarray, fitted: np.ndarray) -> float:
+    """Return the mean squared distance between two contours."""
+    orig_pts = original.reshape(-1, 2).astype(float)
+    fit_pts = fitted.reshape(-1, 2).astype(float)
+    err = 0.0
+    for pt in fit_pts:
+        dist = cv2.pointPolygonTest(original, (pt[0], pt[1]), True)
+        err += dist ** 2
+    for pt in orig_pts:
+        dist = cv2.pointPolygonTest(fitted, (pt[0], pt[1]), True)
+        err += dist ** 2
+    return err / (len(orig_pts) + len(fit_pts))
 
 
 def filter_candidates(
@@ -217,6 +232,11 @@ def main() -> None:
         help="Regress contours to smooth vector shape before DXF export",
     )
     parser.add_argument(
+        "--measure-error",
+        action="store_true",
+        help="Calculate mean squared error when using --smooth",
+    )
+    parser.add_argument(
         "--extrude-height",
         type=float,
         default=10.0,
@@ -261,20 +281,25 @@ def main() -> None:
         cv2.imwrite(str(crop_path), crop)
 
         dxf_path = args.output_dir / f"candidate_{idx}.dxf"
-        contour_to_dxf(contour, dxf_path, smooth=args.smooth)
+        used_contour = contour_to_dxf(contour, dxf_path, smooth=args.smooth)
 
         scad_path = args.output_dir / f"candidate_{idx}.scad"
         dxf_to_scad(dxf_path, scad_path, args.extrude_height)
 
         size_mm = [round(w * mm_per_px, 3), round(h * mm_per_px, 3)] if mm_per_px is not None else None
 
-        candidates_output.append({
+        cand_record = {
             "image_crop": str(crop_path),
             "dxf_path": str(dxf_path),
             "scad_path": str(scad_path),
             "bbox": [int(x), int(y), int(w), int(h)],
             "size": size_mm,
-        })
+        }
+        if args.measure_error and args.smooth:
+            mse = contour_mse(contour, used_contour)
+            cand_record["regression_mse"] = round(float(mse), 5)
+
+        candidates_output.append(cand_record)
 
         if args.debug:
             print(f"[DEBUG] Accepted candidate {idx}, bbox {x},{y},{w},{h}, size {size_mm}", file=sys.stderr)
