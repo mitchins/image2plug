@@ -44,6 +44,11 @@ def main():
         default=10.0,
         help="Extrusion height for generated OpenSCAD files (mm)",
     )
+    parser.add_argument(
+        "--smooth",
+        action="store_true",
+        help="Regress contours to smooth vector shapes",
+    )
     args = parser.parse_args()
 
     out_dir = args.output_dir
@@ -67,6 +72,7 @@ def main():
             str(cand_dir),
             "--extrude-height",
             str(args.extrude_height),
+            *( ["--smooth"] if args.smooth else [] ),
         ])
         phase2 = json.loads(phase2_out)
 

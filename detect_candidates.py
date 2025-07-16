@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple
 import cv2
 import numpy as np
 import ezdxf
+from scipy.interpolate import splprep, splev
 
 
 def load_metadata(path: Path) -> dict:
@@ -67,7 +68,25 @@ def detect_contours(img: np.ndarray) -> List[np.ndarray]:
     return contours
 
 
-def contour_to_dxf(contour: np.ndarray, path: Path) -> None:
+def smooth_contour(
+    contour: np.ndarray,
+    *,
+    num_points: int = 200,
+    smooth_factor: float = 0.5,
+) -> np.ndarray:
+    """Return a smoothed version of *contour* using a B-spline fit."""
+    pts = contour.reshape(-1, 2)
+    if len(pts) < 3:
+        return contour
+    tck, _ = splprep([pts[:, 0], pts[:, 1]], s=smooth_factor, per=True)
+    u_new = np.linspace(0, 1, num_points)
+    out = np.array(splev(u_new, tck)).T
+    return out.reshape(-1, 1, 2).astype(np.float32)
+
+
+def contour_to_dxf(contour: np.ndarray, path: Path, *, smooth: bool = False) -> None:
+    if smooth:
+        contour = smooth_contour(contour)
     points = contour.reshape(-1, 2)
     doc = ezdxf.new()
     msp = doc.modelspace()
@@ -193,6 +212,11 @@ def main() -> None:
     parser.add_argument("output_dir", type=Path, help="Directory to write results")
     parser.add_argument("--debug", action="store_true", help="Enable debug output")
     parser.add_argument(
+        "--smooth",
+        action="store_true",
+        help="Regress contours to smooth vector shape before DXF export",
+    )
+    parser.add_argument(
         "--extrude-height",
         type=float,
         default=10.0,
@@ -237,7 +261,7 @@ def main() -> None:
         cv2.imwrite(str(crop_path), crop)
 
         dxf_path = args.output_dir / f"candidate_{idx}.dxf"
-        contour_to_dxf(contour, dxf_path)
+        contour_to_dxf(contour, dxf_path, smooth=args.smooth)
 
         scad_path = args.output_dir / f"candidate_{idx}.scad"
         dxf_to_scad(dxf_path, scad_path, args.extrude_height)
