@@ -10,6 +10,8 @@ def test_proof_generation(tmp_path):
         "assets/reference_image_us_letter.png",
         str(output_dir),
         "--proof",
+        "--smooth",
+        "--measure-error",
     ], check=True)
 
     assert (output_dir / "index.html").exists()
@@ -23,3 +25,4 @@ def test_proof_generation(tmp_path):
     previews = list((output_dir / "candidates").glob("*_3d-preview.png"))
     assert previews, "No SCAD preview generated"
     assert any(preview.name in html for preview in previews)
+    assert "MSE" in html

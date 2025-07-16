@@ -84,7 +84,36 @@ def smooth_contour(
     return out.reshape(-1, 1, 2).astype(np.float32)
 
 
-def contour_to_dxf(contour: np.ndarray, path: Path, *, smooth: bool = False) -> None:
+def _resample_contour(contour: np.ndarray, num_points: int) -> np.ndarray:
+    """Resample *contour* to *num_points* evenly spaced points."""
+    pts = contour.reshape(-1, 2)
+    # Close contour explicitly
+    pts_closed = np.vstack([pts, pts[0]])
+    seg_lens = np.sqrt(((pts_closed[1:] - pts_closed[:-1]) ** 2).sum(axis=1))
+    cumulative = np.concatenate([[0.0], np.cumsum(seg_lens)])
+    total_len = cumulative[-1]
+    if total_len == 0:
+        return np.repeat(pts[:1], num_points, axis=0)
+    positions = np.linspace(0, total_len, num_points, endpoint=False)
+    resampled = []
+    for p in positions:
+        idx = np.searchsorted(cumulative, p, side="right") - 1
+        frac = (p - cumulative[idx]) / seg_lens[idx]
+        pt = (1 - frac) * pts_closed[idx] + frac * pts_closed[idx + 1]
+        resampled.append(pt)
+    return np.asarray(resampled, dtype=np.float32)
+
+
+def contour_mse(original: np.ndarray, smoothed: np.ndarray) -> float:
+    """Return the mean squared error between two contours."""
+    tgt_pts = smoothed.reshape(-1, 2)
+    src_pts = _resample_contour(original, len(tgt_pts))
+    diff = src_pts - tgt_pts
+    return float(np.mean(np.sum(diff ** 2, axis=1)))
+
+
+def contour_to_dxf(contour: np.ndarray, path: Path, *, smooth: bool = False) -> np.ndarray:
+    """Save *contour* to a DXF polyline and return the contour used."""
     if smooth:
         contour = smooth_contour(contour)
     points = contour.reshape(-1, 2)
@@ -92,6 +121,7 @@ def contour_to_dxf(contour: np.ndarray, path: Path, *, smooth: bool = False) -> 
     msp = doc.modelspace()
     msp.add_lwpolyline(points.tolist(), close=True)
     doc.saveas(str(path))
+    return contour
 
 
 def dxf_to_scad(dxf_path: Path, scad_path: Path, height: float) -> None:
@@ -217,6 +247,11 @@ def main() -> None:
         help="Regress contours to smooth vector shape before DXF export",
     )
     parser.add_argument(
+        "--measure-error",
+        action="store_true",
+        help="Calculate MSE between smoothed and original contours",
+    )
+    parser.add_argument(
         "--extrude-height",
         type=float,
         default=10.0,
@@ -261,12 +296,19 @@ def main() -> None:
         cv2.imwrite(str(crop_path), crop)
 
         dxf_path = args.output_dir / f"candidate_{idx}.dxf"
-        contour_to_dxf(contour, dxf_path, smooth=args.smooth)
+        used_contour = contour_to_dxf(contour, dxf_path, smooth=args.smooth)
 
         scad_path = args.output_dir / f"candidate_{idx}.scad"
         dxf_to_scad(dxf_path, scad_path, args.extrude_height)
 
         size_mm = [round(w * mm_per_px, 3), round(h * mm_per_px, 3)] if mm_per_px is not None else None
+
+        mse_val = None
+        if args.measure_error and args.smooth:
+            try:
+                mse_val = contour_mse(contour, used_contour)
+            except Exception:
+                mse_val = None
 
         candidates_output.append({
             "image_crop": str(crop_path),
@@ -274,6 +316,7 @@ def main() -> None:
             "scad_path": str(scad_path),
             "bbox": [int(x), int(y), int(w), int(h)],
             "size": size_mm,
+            **({"mse": mse_val} if mse_val is not None else {}),
         })
 
         if args.debug:

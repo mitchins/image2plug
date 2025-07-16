@@ -51,6 +51,7 @@
       <th scope="col">Crop</th>
       <th scope="col">Preview</th>
       <th scope="col">Files</th>
+      <th scope="col">MSE</th>
       <th scope="col">Details</th>
     </tr>
   </thead>
@@ -82,6 +83,7 @@
         </a>
         {% endif %}
       </td>
+      <td>{{ cand.mse if cand.mse is not none }}</td>
       <td>
         <pre>{{ cand | tojson(indent=2) }}</pre>
       </td>
