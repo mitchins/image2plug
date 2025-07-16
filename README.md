@@ -26,6 +26,7 @@ You can run the entire process in one step using the `workflow.py` script:
 python workflow.py assets/example1/original.jpeg results --proof
 ```
 By default this extrudes detected shapes by **10 mm**. You can specify a custom height with `--extrude-height`.
+Use `--smooth` to generate a smoothed DXF outline using spline regression.
 
 This runs straighten, detection, and outputs a proofing report (`results/proof_report.html`) along with all intermediate and final files.
 

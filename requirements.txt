@@ -6,3 +6,4 @@ ezdxf
 jinja2
 matplotlib
 qrcode
+scipy==1.11.4

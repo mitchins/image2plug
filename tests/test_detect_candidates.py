@@ -1,6 +1,7 @@
 import json
 import subprocess
 from pathlib import Path
+import ezdxf
 
 
 def _load_json(text: str):
@@ -194,5 +195,42 @@ def test_detect_candidates_on_iphone_proraw_35mm(tmp_path, proof_recorder):
         'name': 'test_detect_candidates_on_iphone_proraw_35mm',
         'source_image': str(input_img),
         'phase1': phase1,
+        'phase2': data,
+    })
+
+
+def test_detect_candidates_with_smoothing(tmp_path, proof_recorder):
+    input_img = Path('assets/reference_image_us_letter.png')
+    corrected = tmp_path / 'corrected.png'
+    meta_json = tmp_path / 'meta.json'
+
+    res1 = subprocess.run(
+        ['python', 'straighten.py', str(input_img), str(corrected)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    meta_json.write_text(res1.stdout)
+
+    output_dir = tmp_path / 'candidates_smooth'
+    res2 = subprocess.run(
+        ['python', 'detect_candidates.py', str(corrected), str(meta_json), str(output_dir), '--smooth'],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(res2.stdout)
+    assert data['candidates']
+
+    dxf_file = Path(data['candidates'][0]['dxf_path'])
+    doc = ezdxf.readfile(str(dxf_file))
+    poly = list(doc.modelspace().query('LWPOLYLINE'))[0]
+    points = list(poly.get_points())
+    assert len(points) <= 250
+
+    proof_recorder({
+        'name': 'test_detect_candidates_with_smoothing',
+        'source_image': str(input_img),
+        'phase1': json.loads(res1.stdout),
         'phase2': data,
     })
