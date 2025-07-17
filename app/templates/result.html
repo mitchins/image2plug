@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Result {{job_id}}</title>
+</head>
+<body>
+<h1>Result {{job_id}}</h1>
+<p><a href="/">Submit another</a></p>
+{% if data.error %}
+<p>Error: {{data.error}}</p>
+{% else %}
+<h3>Corrected Image</h3>
+<img src="/results-static/{{job_id}}/corrected.png" width="300">
+{% for cand in data['candidates']['candidates'] %}
+<div>
+    <h4>Candidate</h4>
+    <img src="/results-static/{{job_id}}/candidates/{{cand['image_crop'].split('/')[-1]}}" width="200">
+    <p>DXF: <a href="/results-static/{{job_id}}/candidates/{{cand['dxf_path'].split('/')[-1]}}">download</a></p>
+    <p>SCAD: <a href="/results-static/{{job_id}}/candidates/{{cand['scad_path'].split('/')[-1]}}">download</a></p>
+    {% if cand.mse is not none %}<p>MSE: {{cand.mse}}</p>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+</body>
+</html>

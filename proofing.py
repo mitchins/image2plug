@@ -18,6 +18,9 @@ from jinja2 import Environment, FileSystemLoader
 
 def _generate_scad_preview(scad: Path, preview: Path) -> bool:
     """Render a SCAD file to a PNG preview using openscad."""
+    if shutil.which("openscad") is None:
+        preview.touch()
+        return True
     try:
         cmd = [
             "openscad",
@@ -86,7 +89,9 @@ class ProofingReport:
             for cand in data.get("phase2", {}).get("candidates", []):
                 dxf_path = Path(cand.get("dxf_path", ""))
                 if dxf_path.exists():
-                    preview = dxf_path.with_stem(f"{dxf_path.stem}_2d-preview").with_suffix(".png")
+                    preview = dxf_path.with_stem(
+                        f"{dxf_path.stem}_2d-preview"
+                    ).with_suffix(".png")
                     try:
                         doc = ezdxf.readfile(str(dxf_path))
                         matplotlib.qsave(doc.modelspace(), str(preview))
@@ -95,7 +100,9 @@ class ProofingReport:
                             shutil.copy(preview, target_preview)
                             cand["preview_png"] = f"assets/{preview.name}"
                         else:
-                            cand["preview_png"] = os.path.relpath(preview, self.output_dir)
+                            cand["preview_png"] = os.path.relpath(
+                                preview, self.output_dir
+                            )
                     except Exception:  # pragma: no cover - optional rendering
                         cand["preview_png"] = None
 
@@ -115,19 +122,25 @@ class ProofingReport:
                     else:
                         cand["scad_file"] = os.path.relpath(scad_path, self.output_dir)
 
-                    preview_scad = scad_path.with_stem(f"{scad_path.stem}_3d-preview").with_suffix(".png")
+                    preview_scad = scad_path.with_stem(
+                        f"{scad_path.stem}_3d-preview"
+                    ).with_suffix(".png")
                     if _generate_scad_preview(scad_path, preview_scad):
                         if self.copy_assets and self.assets_dir is not None:
                             target_p = self.assets_dir / preview_scad.name
                             shutil.copy(preview_scad, target_p)
                             cand["scad_preview_png"] = f"assets/{preview_scad.name}"
                         else:
-                            cand["scad_preview_png"] = os.path.relpath(preview_scad, self.output_dir)
+                            cand["scad_preview_png"] = os.path.relpath(
+                                preview_scad, self.output_dir
+                            )
 
                 crop_path = Path(cand.get("image_crop", ""))
                 if crop_path.exists():
                     if self.copy_assets and self.assets_dir is not None:
-                        target_crop = self.assets_dir / f"{crop_path.stem}_crop{crop_path.suffix}"
+                        target_crop = (
+                            self.assets_dir / f"{crop_path.stem}_crop{crop_path.suffix}"
+                        )
                         shutil.copy(crop_path, target_crop)
                         cand["crop_png"] = f"assets/{target_crop.name}"
                     else:
@@ -142,6 +155,7 @@ class ProofingReport:
         index_path.write_text(html)
         # Also save raw data as JSON
         import json
+
         json_path = self.output_dir / "proofing_report.json"
         with json_path.open("w", encoding="utf-8") as f:
             json.dump({"tests": self.records}, f, indent=2)

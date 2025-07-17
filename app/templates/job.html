@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Job {{job_id}}</title>
+    <script>
+    async function poll(){
+        const r = await fetch('/jobs/{{job_id}}/status');
+        const data = await r.json();
+        if(data.status === 'completed'){ window.location = '/results/{{job_id}}'; }
+        else if(data.status === 'error'){ document.getElementById('status').innerText = 'error'; }
+        else { setTimeout(poll, 1000); }
+    }
+    window.onload = poll;
+    </script>
+</head>
+<body>
+<h2>Job {{job_id}}</h2>
+<p id="status">processing...</p>
+</body>
+</html>

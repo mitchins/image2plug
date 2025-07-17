@@ -158,3 +158,28 @@ See the LICENSE file for full details.
 
 ---
 
+
+## Web Service
+
+A simple FastAPI web interface is included under `app/`. Build and run with Docker:
+
+```bash
+docker build -t image2plug .
+docker run -p 8000:8000 image2plug
+```
+
+or using docker-compose:
+
+```bash
+docker compose up --build
+```
+
+Open <http://localhost:8000> to upload an image.
+
+### Abuse Protection
+
+All public endpoints are compatible with Cloudflare Turnstile or similar CAPTCHA widgets. Add the script snippet to `app/templates/index.html` and validate the token in `/upload`.
+
+Rate limiting can be enabled by running the service behind a proxy (e.g. Nginx) or using FastAPI middleware such as `slowapi`.
+
+
