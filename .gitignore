@@ -4,3 +4,4 @@ __pycache__/
 tests/proof
 results/
 debug_proc_qr.png
+jobs.db

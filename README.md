@@ -110,6 +110,31 @@ cd image2plug
 pip install -r requirements.txt
 ```
 
+### Running the Web Service
+
+Build and start the FastAPI web UI using Docker:
+
+```bash
+docker build -t image2plug-web .
+docker run -p 8000:8000 image2plug-web
+```
+
+Alternatively with docker-compose:
+
+```bash
+docker-compose up --build
+```
+
+The service will be available at `http://localhost:8000`.
+
+#### Abuse Protection
+
+All upload endpoints support Cloudflare Turnstile. Set the environment
+variables `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to enable the
+CAPTCHA check. Rate limiting can be configured by placing the service
+behind a reverse proxy such as Traefik or Nginx with the appropriate
+middleware.
+
 ---
 
 ## ArUco Scale Marker

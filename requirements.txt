@@ -7,3 +7,9 @@ jinja2
 matplotlib
 qrcode
 scipy==1.11.4
+fastapi
+uvicorn[standard]
+sqlalchemy
+aiofiles
+httpx
+python-multipart

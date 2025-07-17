@@ -2,7 +2,13 @@ import subprocess
 from pathlib import Path
 
 
+import shutil
+import pytest
+
+
 def test_proof_generation(tmp_path):
+    if shutil.which("xvfb-run") is None:
+        pytest.skip("xvfb-run not available")
     output_dir = tmp_path / "out"
     subprocess.run([
         "python",
