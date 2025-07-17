@@ -260,3 +260,55 @@ def test_detect_candidates_mse(tmp_path):
     assert data['candidates']
     assert 'mse' in data['candidates'][0]
     assert data['candidates'][0]['mse'] is not None
+
+
+def test_border_mode_effects(tmp_path):
+    import cv2
+    import numpy as np
+    # create blurred circle image
+    img = np.full((200, 200, 3), 255, dtype=np.uint8)
+    cv2.circle(img, (100, 100), 60, (0, 0, 0), -1)
+    img = cv2.GaussianBlur(img, (21, 21), 0)
+    img_path = tmp_path / "fuzzy.png"
+    cv2.imwrite(str(img_path), img)
+
+    meta = {"result": {"scale_x_mm_per_px": 1.0}}
+    meta_path = tmp_path / "meta.json"
+    meta_path.write_text(json.dumps(meta))
+
+    # baseline bbox from thresholded mask
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, base_mask = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    base_contours, _ = cv2.findContours(base_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    bx, by, bw, bh = cv2.boundingRect(base_contours[0])
+
+    results = {}
+    for mode in ["tight", "inside", "outside"]:
+        out_dir = tmp_path / f"out_{mode}"
+        res = subprocess.run([
+            'python', 'detect_candidates.py', str(img_path), str(meta_path), str(out_dir),
+            '--border-mode', mode
+        ], capture_output=True, text=True, check=True)
+        data = json.loads(res.stdout)
+        assert data['border_mode'] == mode
+        assert data['candidates']
+        results[mode] = data['candidates'][0]['bbox']
+
+    tight = results['tight']
+    inside = results['inside']
+    outside = results['outside']
+
+    # inside bbox should lie within base bbox
+    assert inside[0] >= bx and inside[1] >= by
+    assert inside[0] + inside[2] <= bx + bw
+    assert inside[1] + inside[3] <= by + bh
+
+    # outside bbox should contain base bbox
+    assert outside[0] <= bx and outside[1] <= by
+    assert outside[0] + outside[2] >= bx + bw
+    assert outside[1] + outside[3] >= by + bh
+
+    # tight bbox should be close to base bbox (within 1px)
+    diff = [abs(t - b) for t, b in zip(tight, [bx, by, bw, bh])]
+    assert all(d <= 1 for d in diff)
+

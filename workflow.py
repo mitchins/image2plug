@@ -54,6 +54,14 @@ def main():
         action="store_true",
         help="Calculate MSE between smoothed and raw contours",
     )
+    parser.add_argument(
+        "--border-mode",
+        choices=["tight", "inside", "outside"],
+        default="tight",
+        help=(
+            "Controls border interpretation when detecting candidates"
+        ),
+    )
     args = parser.parse_args()
 
     out_dir = args.output_dir
@@ -77,6 +85,8 @@ def main():
             str(cand_dir),
             "--extrude-height",
             str(args.extrude_height),
+            "--border-mode",
+            args.border_mode,
             *( ["--smooth"] if args.smooth else [] ),
             *( ["--measure-error"] if args.measure_error else [] ),
         ])
@@ -93,6 +103,12 @@ def main():
                 "source_image": str(args.image),
                 "corrected_image": CORRECTED_IMAGE,
                 "preview_image": preview_image,
+                "options": {
+                    "smooth": args.smooth,
+                    "measure_error": args.measure_error,
+                    "extrude_height": args.extrude_height,
+                    "border_mode": args.border_mode,
+                },
                 "phase1": phase1,
                 "phase2": phase2,
             })

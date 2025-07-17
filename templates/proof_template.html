@@ -22,6 +22,9 @@
 </ul>
 {% for test in tests %}
 <h2 id="{{ test.name }}" class="mt-4">{{ test.name }}</h2>
+{% if test.options %}
+<p><strong>Options:</strong> {{ test.options | tojson(indent=2) }}</p>
+{% endif %}
 <table class="table table-bordered align-middle">
   <thead class="table-light">
     <tr>
