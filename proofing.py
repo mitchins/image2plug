@@ -18,17 +18,23 @@ from jinja2 import Environment, FileSystemLoader
 def _generate_scad_preview(scad: Path, preview: Path) -> bool:
     """Render a SCAD file to a PNG preview using openscad."""
     try:
-        subprocess.run([
-            "openscad",
-            "--autocenter",
-            "--viewall",
-            "--imgsize=400,300",
-            "--camera=0,0,0,45,0,0,200",
-            "--render",
-            "-o",
-            str(preview),
-            str(scad),
-        ], check=False, capture_output=True)
+        subprocess.run(
+            [
+                "xvfb-run",
+                "-a",
+                "openscad",
+                "--autocenter",
+                "--viewall",
+                "--imgsize=400,300",
+                "--camera=0,0,0,45,0,0,200",
+                "--render",
+                "-o",
+                str(preview),
+                str(scad),
+            ],
+            check=False,
+            capture_output=True,
+        )
         return preview.exists()
     except Exception:
         return False

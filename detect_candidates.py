@@ -53,7 +53,7 @@ def detect_marker_boxes(img: np.ndarray) -> List[Tuple[int, int, int, int]]:
     return marker_boxes
 
 
-def detect_contours(img: np.ndarray) -> List[np.ndarray]:
+def detect_contours(img: np.ndarray, border_mode: str = "tight") -> List[np.ndarray]:
     """
     Detect contours in the image using global Otsu thresholding.
     """
@@ -62,6 +62,11 @@ def detect_contours(img: np.ndarray) -> List[np.ndarray]:
         gray, 0, 255,
         cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
     )
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    if border_mode == "inside":
+        thresh = cv2.erode(thresh, kernel, iterations=1)
+    elif border_mode == "outside":
+        thresh = cv2.dilate(thresh, kernel, iterations=1)
     contours, _ = cv2.findContours(
         thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
@@ -257,6 +262,16 @@ def main() -> None:
         default=10.0,
         help="Extrusion height for generated OpenSCAD files (mm)",
     )
+    parser.add_argument(
+        "--border-mode",
+        choices=["tight", "inside", "outside"],
+        default="tight",
+        help=(
+            "Controls border interpretation: 'tight' fits the visible edge, "
+            "'inside' ensures the shape is fully within the visible area, "
+            "'outside' ensures it fully encloses it."
+        ),
+    )
     args = parser.parse_args()
 
     # Step 1: Load image and metadata
@@ -273,7 +288,7 @@ def main() -> None:
         print(f"[DEBUG] Detected {len(marker_boxes)} marker(s)", file=sys.stderr)
 
     # Step 3: Detect contours
-    contours = detect_contours(img)
+    contours = detect_contours(img, border_mode=args.border_mode)
     if args.debug:
         print(f"[DEBUG] Detected {len(contours)} contours", file=sys.stderr)
 
@@ -322,7 +337,7 @@ def main() -> None:
         if args.debug:
             print(f"[DEBUG] Accepted candidate {idx}, bbox {x},{y},{w},{h}, size {size_mm}", file=sys.stderr)
 
-    summary = {"candidates": candidates_output}
+    summary = {"border_mode": args.border_mode, "candidates": candidates_output}
     print(json.dumps(summary))
 
 

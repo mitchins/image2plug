@@ -455,7 +455,7 @@ def main():
     
     res = straighten_image(img, marker_size_mm=args.marker_size_mm, qr_mode=args.qr_mode)
     warped = res["image"]
-    mm_per_pixel = res["mm_per_pixel"]
+    mm_per_pixel = float(res["mm_per_pixel"]) if res["mm_per_pixel"] is not None else None
     notes = res["notes"]
     
     cv2.imwrite(str(output_path), warped)
@@ -474,8 +474,8 @@ def main():
         "result": {
             "path": str(output_path),
             "size_px": list(size_px),
-            "scale_x_mm_per_px": res["scale_x_mm_per_px"],
-            "scale_y_mm_per_px": res["scale_y_mm_per_px"],
+            "scale_x_mm_per_px": float(res["scale_x_mm_per_px"]) if res["scale_x_mm_per_px"] is not None else None,
+            "scale_y_mm_per_px": float(res["scale_y_mm_per_px"]) if res["scale_y_mm_per_px"] is not None else None,
             "rotation_degrees": res["rotation_degrees"],
             "transform": res["transform"].tolist() if hasattr(res["transform"], "tolist") else res["transform"],
             "method": res["method"],
