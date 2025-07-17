@@ -1,0 +1,13 @@
+version: '3'
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./data:/data
+    environment:
+      - IMAGE2PLUG_DB=/data/jobs.db
+      - IMAGE2PLUG_RESULTS=/data/results
+

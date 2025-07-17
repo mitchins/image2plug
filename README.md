@@ -158,3 +158,16 @@ See the LICENSE file for full details.
 
 ---
 
+
+## Web Service
+
+A simple FastAPI web UI is provided to run jobs in the browser. Build and start it with Docker:
+
+```bash
+docker compose up --build
+```
+
+The server listens on [http://localhost:8000](http://localhost:8000). Upload an image at `/jobs/upload` and access results via `/jobs/{id}/results`.
+
+Set `IMAGE2PLUG_DB` and `IMAGE2PLUG_RESULTS` to change the data directories.
+
