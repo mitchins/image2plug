@@ -109,6 +109,14 @@ git clone https://github.com/mitchellcurrie/image2plug.git
 cd image2plug
 pip install -r requirements.txt
 ```
+## Web Service
+
+Run the FastAPI web UI using Docker:
+```bash
+docker compose up --build
+```
+Jobs and results are stored in `jobs/`. Enable Cloudflare Turnstile by setting `TURNSTILE_SECRET_KEY` and providing `turnstile_token` with uploads.
+
 
 ---
 
