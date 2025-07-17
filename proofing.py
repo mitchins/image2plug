@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 import os
+import platform
 from typing import Any, Dict
 
 try:
@@ -18,25 +19,34 @@ from jinja2 import Environment, FileSystemLoader
 def _generate_scad_preview(scad: Path, preview: Path) -> bool:
     """Render a SCAD file to a PNG preview using openscad."""
     try:
-        subprocess.run(
-            [
-                "xvfb-run",
-                "-a",
-                "openscad",
-                "--autocenter",
-                "--viewall",
-                "--imgsize=400,300",
-                "--camera=0,0,0,45,0,0,200",
-                "--render",
-                "-o",
-                str(preview),
-                str(scad),
-            ],
+        cmd = [
+            "openscad",
+            "--autocenter",
+            "--viewall",
+            "--imgsize=400,300",
+            "--camera=0,0,0,45,0,0,200",
+            "--render",
+            "-o",
+            str(preview),
+            str(scad),
+        ]
+
+        if platform.system() == "Linux" and not os.environ.get("DISPLAY"):
+            cmd = ["xvfb-run", "-a"] + cmd
+
+        result = subprocess.run(
+            cmd,
             check=False,
             capture_output=True,
         )
-        return preview.exists()
-    except Exception:
+        if not preview.exists():
+            print(f"⚠️ Warning: OpenSCAD preview was not generated for {scad.name}")
+            print("stdout:", result.stdout.decode())
+            print("stderr:", result.stderr.decode())
+            return False
+        return True
+    except Exception as e:
+        print(f"❌ Error running OpenSCAD on {scad.name}: {e}")
         return False
 
 
