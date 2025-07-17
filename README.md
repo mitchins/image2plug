@@ -40,10 +40,12 @@ Step by step example using the `assets/example1/` image set:
 | **Straighten**         | `python straighten.py assets/example1/original.jpeg assets/example1/corrected.png` | ![Corrected](assets/example1/corrected.png) |
 | **Detect Candidates**  | `python detect_candidates.py assets/example1/corrected.png results --threshold --border-mode inside` | ![Crop](assets/example1/candidate_0.png) |
 
-| Output File           | Description                           | Example                                                |
-|----------------------|---------------------------------------|--------------------------------------------------------|
-| `candidate_0.dxf`    | Extracted 2D outline (DXF format)    | ![2D Preview](assets/example1/candidate_0_2d-preview.png) |
-| `candidate_0.scad`   | 3D extrusion script (OpenSCAD format) | ![Extruded](assets/example1/candidate_0_3d-preview.png) |
+| Border   | 2D Preview                                                           | 3D Preview                                                           |
+|----------|-----------------------------------------------------------------------|-----------------------------------------------------------------------|
+| Default  | ![2D Preview Default](assets/example1/candidate_0_2d-preview.png)     | ![3D Preview Default](assets/example1/candidate_0_3d-preview.png)     |
+| Inside   | ![2D Preview Inside](assets/example1/candidate_0_2d-preview-inside.png)| ![3D Preview Inside](assets/example1/candidate_0_3d-preview-inside.png)|
+| Outside  | ![2D Preview Outside](assets/example1/candidate_0_2d-preview-outside.png)| ![3D Preview Outside](assets/example1/candidate_0_3d-preview-outside.png)|
+
 The `--border-mode` option controls how shape borders are interpreted when detecting candidates:
 
 - `tight` (default) follows the visible contour.
