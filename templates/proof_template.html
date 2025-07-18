@@ -10,16 +10,50 @@
     body { padding: 20px; }
     pre { background: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem; }
     img { max-width: 100%; height: auto; }
+    /* Navbar for Proof Report */
+    .navbar {
+      display: flex;
+      align-items: center;
+      background-color: #1976d2;
+      color: white;
+      padding: 0 24px;
+      height: 56px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+    }
+    .navbar .title {
+      font-size: 1.25rem;
+      font-weight: 500;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .nav-home {
+      color: white;
+      text-decoration: none;
+      font-size: 24px;
+      margin-right: auto;
+    }
+    .nav-home .material-icons {
+      vertical-align: middle;
+    }
+    /* Main container padding to avoid navbar overlap */
+    .main-container {
+      padding: 80px 24px 24px;
+    }
   </style>
 </head>
-<body class="container">
-<h1 class="mb-4">Proof Report</h1>
-<h2>Index</h2>
-<ul class="list-group mb-4">
-{% for test in tests %}
-  <li class="list-group-item"><a href="#{{ test.name }}">{{ test.name }}</a></li>
-{% endfor %}
-</ul>
+<body>
+<nav class="navbar">
+  <a href="/" class="nav-home" aria-label="Home">
+    <span class="material-icons">home</span>
+  </a>
+  <div class="title">Proof Report</div>
+</nav>
+<div class="main-container">
 {% for test in tests %}
 <h2 id="{{ test.name }}" class="mt-4">{{ test.name }}</h2>
 {% if test.options %}
@@ -95,5 +129,6 @@
   </tbody>
 </table>
 {% endfor %}
+</div>
 </body>
 </html>
