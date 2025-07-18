@@ -75,13 +75,11 @@ def run_workflow(
     ])
     phase2 = json.loads(phase2_out)
 
-    threshold_img = out_dir / "candidates" / "debug_threshold.png"
-    preview_image = (
-        str(threshold_img.relative_to(out_dir)) if threshold_img.exists() else None
-    )
+    # No threshold preview - feature was never implemented
+    preview_image = None
 
     if proof:
-        report = ProofingReport(out_dir, copy_assets=False)
+        report = ProofingReport(out_dir, copy_assets=True)
         report.record(
             {
                 "name": image.stem,

@@ -1,134 +1,606 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Proof Report</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Proof Report - image2plug</title>
+  
+  <!-- Material UI CSS -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
   <style>
-    body { padding: 20px; }
-    pre { background: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem; }
-    img { max-width: 100%; height: auto; }
-    /* Navbar for Proof Report */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    
     .navbar {
       display: flex;
       align-items: center;
       background-color: #1976d2;
       color: white;
       padding: 0 24px;
-      height: 56px;
+      height: 64px;
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       z-index: 1000;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    
     .navbar .title {
-      font-size: 1.25rem;
+      font-size: 1.5rem;
       font-weight: 500;
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
     }
+    
     .nav-home {
       color: white;
       text-decoration: none;
       font-size: 24px;
       margin-right: auto;
+      padding: 8px;
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
     }
+    
+    .nav-home:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+    
     .nav-home .material-icons {
       vertical-align: middle;
     }
-    /* Main container padding to avoid navbar overlap */
-    .main-container {
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
       padding: 80px 24px 24px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .card h2 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      margin-bottom: 24px;
+      color: #1976d2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .card h3 {
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin: 24px 0 16px;
+      color: #1976d2;
+    }
+    
+    .options-box {
+      background-color: #f8f9fa;
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 24px;
+      border-left: 4px solid #1976d2;
+    }
+    
+    .options-box pre {
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font-size: 14px;
+      color: #333;
+    }
+    
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+    
+    .comparison-table th,
+    .comparison-table td {
+      padding: 16px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+    
+    .comparison-table th {
+      background-color: #f8f9fa;
+      font-weight: 500;
+      color: #1976d2;
+    }
+    
+    .comparison-table img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .metadata-box {
+      background-color: #f8f9fa;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    
+    .candidates-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .candidates-table th,
+    .candidates-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+    
+    .candidates-table th {
+      background-color: #f8f9fa;
+      font-weight: 500;
+      color: #1976d2;
+    }
+    
+    .candidates-table img {
+      max-width: 150px;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .download-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background-color: transparent;
+      color: #1976d2;
+      text-decoration: none;
+      border: 1px solid #1976d2;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: background-color 0.3s ease;
+    }
+    
+    .download-link:hover {
+      background-color: #f3f7ff;
+      text-decoration: none;
+      color: #1976d2;
+    }
+    
+    .download-link .material-icons {
+      font-size: 16px;
+    }
+    
+    .mse-value {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      padding: 4px 8px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    
+    .empty-cell {
+      color: #999;
+      font-style: italic;
+    }
+    
+    .key-details {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .key-details > div {
+      margin-bottom: 8px;
+    }
+    
+    .candidate-summary {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .candidate-summary > div {
+      margin-bottom: 8px;
+    }
+    
+    .info-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background-color: transparent;
+      color: #1976d2;
+      border: 1px solid #1976d2;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 8px;
+    }
+    
+    .info-toggle:hover {
+      background-color: #f3f7ff;
+    }
+    
+    .info-toggle .material-icons {
+      font-size: 16px;
+    }
+    
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .modal-content {
+      background-color: white;
+      margin: 5% auto;
+      padding: 0;
+      border-radius: 8px;
+      max-width: 800px;
+      max-height: 80vh;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .modal-header {
+      background-color: #1976d2;
+      color: white;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      transition: background-color 0.3s ease;
+    }
+    
+    .modal-close:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+    
+    .modal-body {
+      padding: 24px;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+    
+    .modal-json {
+      background-color: #f8f9fa;
+      padding: 16px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 80px 16px 16px;
+      }
+      
+      .card {
+        padding: 16px;
+      }
+      
+      .comparison-table th,
+      .comparison-table td {
+        padding: 8px;
+      }
+      
+      .candidates-table th,
+      .candidates-table td {
+        padding: 8px;
+      }
+      
+      .modal-content {
+        margin: 10% 5%;
+        max-width: none;
+        width: 90%;
+      }
+      
+      .modal-header {
+        padding: 16px;
+      }
+      
+      .modal-body {
+        padding: 16px;
+      }
+      
+      .modal-json {
+        font-size: 10px;
+      }
     }
   </style>
 </head>
 <body>
-<nav class="navbar">
-  <a href="/" class="nav-home" aria-label="Home">
-    <span class="material-icons">home</span>
-  </a>
-  <div class="title">Proof Report</div>
-</nav>
-<div class="main-container">
-{% for test in tests %}
-<h2 id="{{ test.name }}" class="mt-4">{{ test.name }}</h2>
-{% if test.options %}
-<p><strong>Options:</strong> {{ test.options | tojson(indent=2) }}</p>
-{% endif %}
-<table class="table table-bordered align-middle">
-  <thead class="table-light">
-    <tr>
-      <th scope="col">Original</th>
-      <th scope="col">Corrected</th>
-      <th scope="col">Preview</th>
-      <th scope="col">Metadata</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><img src="{{ test.source_image }}" alt="source" class="img-fluid"></td>
-      <td><img src="{{ test.corrected_image }}" alt="corrected" class="img-fluid"></td>
-      <td>
-        {% if test.preview_image %}
-          <img src="{{ test.preview_image }}" alt="preview" class="img-fluid">
-        {% endif %}
-      </td>
-      <td><pre>{{ test.phase1 | tojson(indent=2) }}</pre></td>
-    </tr>
-  </tbody>
-</table>
-<h3>Candidates</h3>
-<table class="table table-bordered">
-  <thead class="table-light">
-    <tr>
-      <th scope="col">Crop</th>
-      <th scope="col">Preview</th>
-      <th scope="col">Files</th>
-      <th scope="col">MSE</th>
-      <th scope="col">Details</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for cand in test.phase2.candidates %}
-    <tr>
-      <td>
-        {% if cand.crop_png %}
-          <img src="{{ cand.crop_png }}" alt="Crop" class="img-fluid">
-        {% endif %}
-      </td>
-      <td>
-        {% if cand.preview_png %}
-          <img src="{{ cand.preview_png }}" alt="2D" class="img-fluid">
-        {% endif %}
-        {% if cand.scad_preview_png %}
-          <img src="{{ cand.scad_preview_png }}" alt="3D" class="img-fluid mt-1">
-        {% endif %}
-      </td>
-      <td>
-        <a href="{{ cand.dxf_file }}" download class="btn btn-outline-primary btn-sm d-block mb-1">
-          <span class="material-icons align-middle" style="font-size:16px;">download</span>
-          DXF
-        </a>
-        {% if cand.scad_file %}
-        <a href="{{ cand.scad_file }}" download class="btn btn-outline-secondary btn-sm d-block">
-          <span class="material-icons align-middle" style="font-size:16px;">download</span>
-          SCAD
-        </a>
-        {% endif %}
-      </td>
-      <td>{{ cand.mse if cand.mse is not none }}</td>
-      <td>
-        <pre>{{ cand | tojson(indent=2) }}</pre>
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% endfor %}
-</div>
+  <nav class="navbar">
+    <a href="/" class="nav-home" aria-label="Home">
+      <span class="material-icons">home</span>
+    </a>
+    <div class="title">Proof Report</div>
+  </nav>
+  
+  <div class="container">
+    {% for test in tests %}
+    <div class="card">
+      <h2 id="{{ test.name }}">
+        <span class="material-icons">assessment</span>
+        {{ test.name }}
+      </h2>
+      
+      {% if test.options %}
+      <div class="options-box">
+        <strong>Processing Options:</strong>
+        <pre>{{ test.options | tojson(indent=2) }}</pre>
+      </div>
+      {% endif %}
+      
+      <h3>Image Comparison</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Original</th>
+            <th>Corrected</th>
+            <th>Key Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              {% if test.source_image %}
+                <img src="{{ test.source_image }}" alt="Original image" />
+              {% else %}
+                <span class="empty-cell">No source image</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if test.corrected_image %}
+                <img src="{{ test.corrected_image }}" alt="Corrected image" />
+              {% else %}
+                <span class="empty-cell">No corrected image</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="key-details">
+                {% if test.phase1.size_mm %}
+                  <div><strong>Size:</strong> {{ "%.1f" | format(test.phase1.size_mm[0]) }} × {{ "%.1f" | format(test.phase1.size_mm[1]) }} mm</div>
+                {% endif %}
+                {% if test.phase1.result.scale_x_mm_per_px %}
+                  <div><strong>Scale:</strong> {{ "%.3f" | format(test.phase1.result.scale_x_mm_per_px) }} mm/px</div>
+                {% endif %}
+                {% if test.phase1.result.rotation_degrees %}
+                  <div><strong>Rotation:</strong> {{ "%.1f" | format(test.phase1.result.rotation_degrees) }}°</div>
+                {% endif %}
+                {% if test.phase1.result.method %}
+                  <div><strong>Method:</strong> {{ test.phase1.result.method }}</div>
+                {% endif %}
+                <button class="info-toggle" onclick="showModal('phase1-modal-{{ loop.index }}')">
+                  <span class="material-icons">info</span>
+                  Full Details
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <h3>Processing Candidates</h3>
+      <table class="candidates-table">
+        <thead>
+          <tr>
+            <th>Crop</th>
+            <th>2D Preview</th>
+            <th>3D Preview</th>
+            <th>Files</th>
+            <th>Summary</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cand in test.phase2.candidates %}
+          <tr>
+            <td>
+              {% if cand.crop_png %}
+                <img src="{{ cand.crop_png }}" alt="Crop preview" />
+              {% else %}
+                <span class="empty-cell">No crop</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if cand.preview_png %}
+                <img src="{{ cand.preview_png }}" alt="2D preview" />
+              {% else %}
+                <span class="empty-cell">No 2D preview</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if cand.scad_preview_png %}
+                <img src="{{ cand.scad_preview_png }}" alt="3D preview" />
+              {% else %}
+                <span class="empty-cell">No 3D preview</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="download-links">
+                {% if cand.dxf_file %}
+                  <a href="{{ cand.dxf_file }}" download class="download-link">
+                    <span class="material-icons">download</span>
+                    DXF File
+                  </a>
+                {% endif %}
+                {% if cand.scad_file %}
+                  <a href="{{ cand.scad_file }}" download class="download-link">
+                    <span class="material-icons">download</span>
+                    SCAD File
+                  </a>
+                {% endif %}
+                {% if not cand.dxf_file and not cand.scad_file %}
+                  <span class="empty-cell">No files available</span>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              <div class="candidate-summary">
+                {% if cand.size_mm %}
+                  <div><strong>Size:</strong> {{ "%.1f" | format(cand.size_mm[0]) }} × {{ "%.1f" | format(cand.size_mm[1]) }} mm</div>
+                {% endif %}
+                {% if cand.mse is defined %}
+                  <div><strong>MSE:</strong> <span class="mse-value">{{ "%.6f" | format(cand.mse) }}</span></div>
+                {% endif %}
+                {% if cand.vertices %}
+                  <div><strong>Vertices:</strong> {{ cand.vertices | length }}</div>
+                {% endif %}
+                <button class="info-toggle" onclick="showModal('candidate-modal-{{ loop.index0 }}')">
+                  <span class="material-icons">info</span>
+                  Full Details
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Modals for this test -->
+    <div id="phase1-modal-{{ loop.index }}" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Processing Metadata - {{ test.name }}</h3>
+          <button class="modal-close" onclick="closeModal('phase1-modal-{{ loop.index }}')">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-json">{{ test.phase1 | tojson(indent=2) }}</div>
+        </div>
+      </div>
+    </div>
+    
+    {% for cand in test.phase2.candidates %}
+    <div id="candidate-modal-{{ loop.index0 }}" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Candidate {{ loop.index }} Details</h3>
+          <button class="modal-close" onclick="closeModal('candidate-modal-{{ loop.index0 }}')">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-json">{{ cand | tojson(indent=2) }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    
+    {% endfor %}
+  </div>
+  
+  <script>
+    function showModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.style.display = 'block';
+        // Focus management for accessibility
+        const closeButton = modal.querySelector('.modal-close');
+        if (closeButton) {
+          closeButton.focus();
+        }
+      }
+    }
+    
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+    
+    // Close modal when clicking outside
+    document.addEventListener('click', function(event) {
+      if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+      }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        const visibleModals = document.querySelectorAll('.modal[style*="display: block"]');
+        visibleModals.forEach(modal => {
+          modal.style.display = 'none';
+        });
+      }
+    });
+  </script>
 </body>
 </html>

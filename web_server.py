@@ -325,8 +325,6 @@ async def submit_job(
     """Submit a new image processing job."""
     session_id, is_new = session_data
     
-    # Debug logging to check parameter values
-    logger.info(f"Job submission parameters: proof={proof}, extrude_height={extrude_height}, smooth={smooth}, measure_error={measure_error}, border_mode={border_mode}")
     
     # Rate limiting
     client_ip = get_client_ip(request)

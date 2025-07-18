@@ -137,7 +137,7 @@ class JobManager {
             // Prepare form data
             const formData = new FormData();
             formData.append('file', this.selectedFile);
-            formData.append('proof', document.getElementById('proof').checked);
+            formData.append('proof', true);  // Always generate proof for web jobs
             formData.append('extrude_height', document.getElementById('extrudeHeight').value);
             formData.append('smooth', document.getElementById('smooth').checked);
             formData.append('measure_error', document.getElementById('measureError').checked);
@@ -186,7 +186,6 @@ class JobManager {
         
         // Reset form
         document.getElementById('jobForm').reset();
-        document.getElementById('proof').checked = true;
         document.getElementById('extrudeHeight').value = '10.0';
     }
 
