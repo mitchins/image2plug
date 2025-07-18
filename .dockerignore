@@ -27,9 +27,9 @@ Thumbs.db
 !README.md
 
 # Development files
-setup-conda.sh
-requirements.txt
-requirements-web.txt
+!setup-conda.sh
+!requirements.txt
+!requirements-web.txt
 
 # Runtime directories (will be mounted as volumes)
 db/

@@ -75,8 +75,8 @@ app = FastAPI(
 
 # Add security middleware
 app.add_middleware(
-    TrustedHostMiddleware, 
-    allowed_hosts=["localhost", "127.0.0.1", "*.your-domain.com"]  # Configure for production
+    TrustedHostMiddleware,
+    allowed_hosts=["*"]  # Allow all hosts behind reverse proxy
 )
 
 # Configure CORS for frontend
