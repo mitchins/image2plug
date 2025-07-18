@@ -90,11 +90,97 @@ For best results, capture your images with the following considerations in mind.
 
 ---
 
+## Job Queue System
+
+**image2plug** includes a robust job queue system for processing images asynchronously. This is ideal for web applications, batch processing, or distributed workflows.
+
+### Quick Start
+
+```bash
+# Create a job
+python3 job_manager.py create assets/example1/original.jpeg --proof --smooth
+
+# Start the daemon to process jobs
+python3 job_manager.py daemon
+
+# Check job status
+python3 job_manager.py status
+```
+
+### Job Management Commands
+
+```bash
+# Create jobs with workflow options
+python3 job_manager.py create <image> [--proof] [--smooth] [--extrude-height N] [--border-mode MODE]
+
+# List jobs (with optional status filter)
+python3 job_manager.py list [--status pending|running|completed|failed]
+
+# Get specific job details
+python3 job_manager.py get <job_id> [--json]
+
+# Show queue statistics
+python3 job_manager.py stats
+
+# Watch live status updates
+python3 job_manager.py status --watch
+
+# Clean up old jobs
+python3 job_manager.py purge --days 30
+```
+
+### Daemon Options
+
+```bash
+# Run daemon continuously
+python3 job_manager.py daemon
+
+# Process single job and exit
+python3 job_manager.py daemon --once
+
+# Custom output directory and polling interval
+python3 job_manager.py daemon --output-root ./results --interval 2.0
+
+# Verbose logging
+python3 job_manager.py --verbose daemon
+```
+
+### Job System Features
+
+- **Multi-process Safe**: SQLite with WAL mode for concurrent access
+- **Full Workflow Support**: All `workflow.py` options available per job
+- **Rich Metadata**: Job timing, error tracking, custom metadata
+- **Auto-purging**: Configurable cleanup of old completed jobs
+- **Docker Ready**: Designed for containerized deployment
+- **Web UI Ready**: JSON API and secure output URLs for web interfaces
+- **Secure Output URLs**: Job IDs double as unguessable directory names
+
+### Programmatic Usage
+
+```python
+from job import JobStore, enqueue_workflow_job
+
+# Simple job creation
+job_id = enqueue_workflow_job(
+    image=Path("photo.jpg"),
+    proof=True,
+    smooth=True,
+    extrude_height=15.0
+)
+
+# Advanced usage
+store = JobStore("db/jobs.db")
+job = store.get_job(job_id)
+print(f"Status: {job.status}")
+```
+
+---
+
 ## Future Plans
 
 - Automatic marker detection with ArUco tags.
 - Export directly to STL.
-- Web or GUI interface.
+- Web or GUI interface. ✅ *Job queue system ready*
 - Auto-cleanup of rough contours.
 - Multiple hole detection in one image.
 

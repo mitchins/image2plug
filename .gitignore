@@ -4,3 +4,10 @@ __pycache__/
 tests/proof
 results/
 debug_proc_qr.png
+db/jobs.db
+db/jobs.db-shm
+db/jobs.db-wal
+.gitignore
+image2plug_web.log
+web_results/
+jobs.db
