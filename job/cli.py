@@ -137,6 +137,13 @@ def create_parser() -> argparse.ArgumentParser:
     create_parser.add_argument("image", type=Path, help="Path to image file")
     create_parser.add_argument("--metadata", type=str, help="JSON metadata for job")
     
+    # Workflow options
+    create_parser.add_argument("--proof", action="store_true", help="Generate HTML proof report")
+    create_parser.add_argument("--extrude-height", type=float, default=10.0, help="Extrusion height (mm)")
+    create_parser.add_argument("--smooth", action="store_true", help="Enable contour smoothing") 
+    create_parser.add_argument("--measure-error", action="store_true", help="Calculate MSE between smoothed/raw contours")
+    create_parser.add_argument("--border-mode", choices=["tight", "inside", "outside"], default="tight", help="Border interpretation mode")
+    
     # Get job command
     get_parser = subparsers.add_parser("get", help="Get job details by ID")
     get_parser.add_argument("job_id", help="Job ID")
@@ -187,7 +194,19 @@ def main():
     
     try:
         if args.command == "create":
-            metadata = json.loads(args.metadata) if args.metadata else None
+            # Build workflow options from command line args
+            workflow_options = {
+                "proof": args.proof,
+                "extrude_height": args.extrude_height,
+                "smooth": args.smooth,
+                "measure_error": args.measure_error,
+                "border_mode": args.border_mode
+            }
+            
+            # Merge with any additional metadata
+            metadata = json.loads(args.metadata) if args.metadata else {}
+            metadata["workflow_options"] = workflow_options
+            
             job_id = cli.create_job(args.image, metadata)
             print(job_id)
             
@@ -256,11 +275,26 @@ def main():
                 output_path.mkdir(parents=True, exist_ok=True)
                 
                 if run_workflow is not None:
-                    # Use real workflow
-                    run_workflow(job.image_path, output_path)
+                    # Extract workflow options from job metadata
+                    workflow_options = {}
+                    if job.metadata and "workflow_options" in job.metadata:
+                        workflow_options = job.metadata["workflow_options"]
+                    
+                    # Use real workflow with job-specific options
+                    run_workflow(
+                        job.image_path, 
+                        output_path,
+                        proof=workflow_options.get("proof", False),
+                        extrude_height=workflow_options.get("extrude_height", 10.0),
+                        smooth=workflow_options.get("smooth", False),
+                        measure_error=workflow_options.get("measure_error", False),
+                        border_mode=workflow_options.get("border_mode", "tight")
+                    )
                 else:
                     # Fallback test processor
-                    (output_path / "test_output.txt").write_text(f"Processed {job.image_path}")
+                    workflow_opts = job.metadata.get("workflow_options", {}) if job.metadata else {}
+                    test_output = f"Processed {job.image_path}\nOptions: {workflow_opts}"
+                    (output_path / "test_output.txt").write_text(test_output)
                     import time
                     time.sleep(0.1)  # Simulate processing time
             

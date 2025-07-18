@@ -10,5 +10,6 @@ from .models import Job, JobStatus
 from .store import JobStore
 from .daemon import JobDaemon
 from .cli import JobCLI
+from .compat import enqueue_workflow_job
 
-__all__ = ["Job", "JobStatus", "JobStore", "JobDaemon", "JobCLI"]
+__all__ = ["Job", "JobStatus", "JobStore", "JobDaemon", "JobCLI", "enqueue_workflow_job"]
