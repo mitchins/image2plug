@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  image2plug:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount directories for persistence
+      - ./db:/app/db
+      - ./uploads:/app/uploads  
+      - ./web_results:/app/web_results
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/stats')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

@@ -29,7 +29,8 @@ class JobDaemon:
         self, 
         store: JobStore,
         processor: Callable[[Job], None],
-        interval: float = 1.0
+        interval: float = 1.0,
+        setup_signal_handlers: bool = True
     ):
         """
         Initialize job daemon.
@@ -38,6 +39,7 @@ class JobDaemon:
             store: Job store instance
             processor: Function to process jobs (job) -> None
             interval: Polling interval in seconds
+            setup_signal_handlers: If False, don't set up signal handlers (for threading)
         """
         self.store = store
         self.processor = processor
@@ -46,9 +48,10 @@ class JobDaemon:
         self.running = False
         self.logger = logging.getLogger(__name__)
         
-        # Setup signal handlers for graceful shutdown
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
+        # Setup signal handlers for graceful shutdown only if not in thread
+        if setup_signal_handlers:
+            signal.signal(signal.SIGINT, self._signal_handler)
+            signal.signal(signal.SIGTERM, self._signal_handler)
 
     def _signal_handler(self, signum: int, frame):
         """Handle shutdown signals gracefully."""

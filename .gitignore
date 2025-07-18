@@ -11,3 +11,4 @@ db/jobs.db-wal
 image2plug_web.log
 web_results/
 jobs.db
+uploads/

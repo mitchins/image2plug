@@ -1,0 +1,21 @@
+name: image2plug
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy=1.26.4
+  - scipy=1.11.4
+  - pillow
+  - matplotlib
+  - jinja2
+  - opencv
+  - pip
+  - pip:
+    - fastapi==0.104.1
+    - uvicorn[standard]==0.24.0
+    - python-multipart==0.0.6
+    - python-jose[cryptography]==3.3.0
+    - ezdxf
+    - qrcode
+    - pytest
