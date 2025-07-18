@@ -148,6 +148,7 @@ def create_parser() -> argparse.ArgumentParser:
     get_parser = subparsers.add_parser("get", help="Get job details by ID")
     get_parser.add_argument("job_id", help="Job ID")
     get_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    get_parser.add_argument("--output-path", action="store_true", help="Show full output path")
     
     # List jobs command
     list_parser = subparsers.add_parser("list", help="List jobs")
@@ -170,6 +171,16 @@ def create_parser() -> argparse.ArgumentParser:
     daemon_parser.add_argument("--interval", type=float, default=1.0, help="Polling interval in seconds")
     daemon_parser.add_argument("--once", action="store_true", help="Process single job and exit")
     daemon_parser.add_argument("--max-jobs", type=int, help="Maximum jobs to process before stopping")
+    
+    # Status command - check what jobs are pending/running
+    status_parser = subparsers.add_parser("status", help="Show detailed queue status") 
+    status_parser.add_argument("--watch", "-w", action="store_true", help="Watch status continuously")
+    status_parser.add_argument("--interval", type=float, default=2.0, help="Watch interval in seconds")
+    
+    # Find command - locate output directory for job
+    find_parser = subparsers.add_parser("find", help="Find output directory for job ID")
+    find_parser.add_argument("job_id", help="Job ID to find")
+    find_parser.add_argument("--output-root", type=Path, default=Path("web_results"), help="Output root directory")
     
     return parser
 
@@ -216,7 +227,19 @@ def main():
                 print(f"Job {args.job_id} not found", file=sys.stderr)
                 return 1
             
-            if args.json:
+            if args.output_path:
+                # Show the actual filesystem path
+                from pathlib import Path
+                output_root = Path("web_results")  # Default output root
+                full_path = output_root / job["output_dir"]
+                print(f"Output directory: {full_path}")
+                if full_path.exists():
+                    print("Contents:")
+                    for item in sorted(full_path.iterdir()):
+                        print(f"  {item.name}")
+                else:
+                    print("Directory does not exist (job may not have completed)")
+            elif args.json:
                 print(json.dumps(job, indent=2))
             else:
                 print(cli.format_job_table([job]))
@@ -239,6 +262,76 @@ def main():
                 print("Job Queue Statistics:")
                 for status, count in stats.items():
                     print(f"  {status.title()}: {count}")
+                    
+        elif args.command == "status":
+            if args.watch:
+                import time
+                import os
+                try:
+                    while True:
+                        # Clear screen
+                        os.system('clear' if os.name == 'posix' else 'cls')
+                        
+                        # Show current status
+                        print("=== Job Queue Status (Press Ctrl+C to exit) ===")
+                        stats = cli.get_stats()
+                        for status, count in stats.items():
+                            print(f"  {status.title()}: {count}")
+                        print()
+                        
+                        # Show recent jobs
+                        print("Recent Jobs:")
+                        jobs = cli.list_jobs(limit=10)
+                        if jobs:
+                            print(cli.format_job_table(jobs))
+                        else:
+                            print("  No jobs found")
+                        
+                        print(f"\nLast updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        time.sleep(args.interval)
+                        
+                except KeyboardInterrupt:
+                    print("\nStopped watching.")
+            else:
+                print("=== Job Queue Status ===")
+                stats = cli.get_stats()
+                for status, count in stats.items():
+                    print(f"  {status.title()}: {count}")
+                print()
+                
+                print("Recent Jobs:")
+                jobs = cli.list_jobs(limit=10) 
+                if jobs:
+                    print(cli.format_job_table(jobs))
+                else:
+                    print("  No jobs found")
+                    
+        elif args.command == "find":
+            # Find output directory for job ID
+            
+            # Check if job exists first
+            job = cli.get_job(args.job_id)
+            if job is None:
+                print(f"Job {args.job_id} not found", file=sys.stderr)
+                return 1
+            
+            # Use job ID directly as output directory
+            output_dir = args.job_id
+            full_path = args.output_root / output_dir
+            
+            print(f"Job ID: {args.job_id}")
+            print(f"Output directory: {full_path}")
+            print(f"Status: {job['status']}")
+            
+            if full_path.exists():
+                print("\nContents:")
+                for item in sorted(full_path.iterdir()):
+                    size = ""
+                    if item.is_file():
+                        size = f" ({item.stat().st_size} bytes)"
+                    print(f"  {item.name}{size}")
+            else:
+                print("\nDirectory does not exist (job may not have completed)")
                     
         elif args.command == "purge":
             if args.dry_run:

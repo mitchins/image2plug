@@ -29,8 +29,7 @@ class JobDaemon:
         self, 
         store: JobStore,
         processor: Callable[[Job], None],
-        interval: float = 1.0,
-        max_retries: int = 0
+        interval: float = 1.0
     ):
         """
         Initialize job daemon.
@@ -39,12 +38,10 @@ class JobDaemon:
             store: Job store instance
             processor: Function to process jobs (job) -> None
             interval: Polling interval in seconds
-            max_retries: Maximum retries for failed jobs
         """
         self.store = store
         self.processor = processor
         self.interval = interval
-        self.max_retries = max_retries
         
         self.running = False
         self.logger = logging.getLogger(__name__)
@@ -110,8 +107,9 @@ class JobDaemon:
         """
         self.running = True
         processed_count = 0
+        idle_cycles = 0
         
-        self.logger.info("Job daemon starting...")
+        self.logger.info(f"Job daemon starting (interval={self.interval}s, max_jobs={max_jobs})")
         
         try:
             while self.running:
@@ -123,8 +121,16 @@ class JobDaemon:
                 # Try to process a job
                 if self.run_once():
                     processed_count += 1
+                    idle_cycles = 0
+                    self.logger.info(f"Jobs processed: {processed_count}")
                 else:
                     # No jobs available, sleep before checking again
+                    idle_cycles += 1
+                    if idle_cycles == 1:
+                        self.logger.info("No jobs available, waiting...")
+                    elif idle_cycles % 10 == 0:  # Log every 10 cycles to show daemon is alive
+                        self.logger.debug(f"Still waiting for jobs (idle cycles: {idle_cycles})")
+                    
                     time.sleep(self.interval)
                     
         except KeyboardInterrupt:
@@ -146,6 +152,5 @@ class JobDaemon:
         return {
             "running": self.running,
             "interval": self.interval,
-            "max_retries": self.max_retries,
             "job_stats": self.store.get_stats()
         }

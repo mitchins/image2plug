@@ -7,7 +7,6 @@ import logging
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, List
-import hashlib
 import uuid
 import json
 
@@ -21,12 +20,10 @@ class JobStore:
     Features:
     - WAL mode for better concurrency
     - Connection timeouts and retries
-    - Automatic schema migrations
     - Job lifecycle management
     - Auto-purging of old jobs
     """
     
-    SCHEMA_VERSION = 1
     DEFAULT_TIMEOUT = 30.0
     
     def __init__(self, db_path: Path, timeout: float = DEFAULT_TIMEOUT):
@@ -80,24 +77,10 @@ class JobStore:
             # Create indexes
             conn.execute("CREATE INDEX IF NOT EXISTS idx_status ON jobs(status)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_created_at ON jobs(created_at)")
-            
-            # Create schema version table
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS schema_info (
-                    version INTEGER PRIMARY KEY,
-                    updated_at TEXT NOT NULL
-                )
-            """)
-            
-            # Set initial schema version
-            conn.execute("""
-                INSERT OR IGNORE INTO schema_info (version, updated_at)
-                VALUES (?, ?)
-            """, (self.SCHEMA_VERSION, datetime.utcnow().isoformat()))
 
     def _generate_output_dir(self, job_id: str) -> str:
-        """Generate deterministic output directory name from job ID."""
-        return hashlib.sha256(job_id.encode()).hexdigest()[:16]
+        """Use job ID directly as output directory for security."""
+        return job_id
 
     def _row_to_job(self, row: sqlite3.Row) -> Job:
         """Convert database row to Job object."""
