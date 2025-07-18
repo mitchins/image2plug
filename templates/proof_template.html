@@ -510,14 +510,18 @@
             </td>
             <td>
               <div class="candidate-summary">
-                {% if cand.size_mm %}
+                {% if cand.size %}
+                  <div><strong>Size:</strong> {{ "%.1f" | format(cand.size[0]) }} × {{ "%.1f" | format(cand.size[1]) }} mm</div>
+                  <div><strong>Area:</strong> {{ "%.1f" | format(cand.size[0] * cand.size[1]) }} mm²</div>
+                {% elif cand.size_mm %}
                   <div><strong>Size:</strong> {{ "%.1f" | format(cand.size_mm[0]) }} × {{ "%.1f" | format(cand.size_mm[1]) }} mm</div>
-                {% endif %}
-                {% if cand.mse is defined %}
-                  <div><strong>MSE:</strong> <span class="mse-value">{{ "%.6f" | format(cand.mse) }}</span></div>
+                  <div><strong>Area:</strong> {{ "%.1f" | format(cand.size_mm[0] * cand.size_mm[1]) }} mm²</div>
                 {% endif %}
                 {% if cand.vertices %}
                   <div><strong>Vertices:</strong> {{ cand.vertices | length }}</div>
+                {% endif %}
+                {% if cand.mse is defined %}
+                  <div><strong>MSE:</strong> <span class="mse-value">{{ "%.6f" | format(cand.mse) }}</span></div>
                 {% endif %}
                 <button class="info-toggle" onclick="showModal('candidate-modal-{{ loop.index0 }}')">
                   <span class="material-icons">info</span>
