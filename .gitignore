@@ -7,10 +7,7 @@ debug_proc_qr.png
 db/jobs.db
 db/jobs.db-shm
 db/jobs.db-wal
-web_results/307171c8-0531-4340-8e67-06cd894a2ae8/reference_image_a4_printed_pro_raw_35mm_wide_lens.jpeg
-web_results/399df30f-35fe-4a90-ab55-fe875fe852b1/reference_image_a4_printed_pro_raw_35mm_wide_lens.jpeg
-web_results/5bfb4e3b-694b-425b-9ddc-48b67a07eb3c/reference_image_a4_printed_pro_raw_35mm_wide_lens.jpeg
-web_results/ba075233d05e804a/test_output.txt
-web_results/ec23ba58-fc32-440f-9bf7-820e08c887ac/reference_image_a4_printed_pro_raw_35mm_wide_lens.jpeg
 .gitignore
 image2plug_web.log
+web_results/
+jobs.db
