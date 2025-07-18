@@ -321,6 +321,20 @@
             color: #ddd;
             margin-bottom: 16px;
         }
+        .responsive-img {
+          width: 100%;
+          height: auto;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-bottom: 16px;
+        }
+        .marker-img {
+          max-width: 150px;
+          width: 100%;
+          height: auto;
+          display: block;
+          margin-bottom: 16px;
+        }
     </style>
 </head>
 <body>
@@ -333,6 +347,37 @@
 
         <!-- Main Content -->
         <div class="main-content">
+          <!-- Quickstart Instructions -->
+          <div class="card">
+            <h2>
+              <span class="material-icons">menu_book</span>
+              Quickstart Instructions
+            </h2>
+            <img
+              src="/static/quickstart.png"
+              alt="Quickstart Instructions"
+              class="responsive-img"
+              onclick="window.open('/static/quickstart.png', '_blank')"
+            />
+          </div>
+          <!-- ArUco Marker -->
+          <div class="card">
+            <h2>
+              <span class="material-icons">crop_free</span>
+              ArUco Marker
+            </h2>
+            <p>Print this marker at 30 mm size:</p>
+            <img
+              src="/static/aruco_marker_30mm.png"
+              alt="ArUco Marker"
+              class="marker-img"
+            />
+            <p>
+              <a href="/static/aruco_marker_30mm.png" download class="btn btn-secondary">
+                Download Marker
+              </a>
+            </p>
+          </div>
             <!-- Job Submission -->
             <div class="card">
                 <h2>
