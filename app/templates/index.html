@@ -1,0 +1,39 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>image2plug</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>image2plug</h1>
+        <p>Upload an image to process.</p>
+        <form id="upload-form">
+            <div class="file-input">
+                <input type="file" id="image-input" name="image" accept="image/*" required>
+                <label for="image-input">
+                    <span class="material-icons">cloud_upload</span>
+                    Choose a file
+                </label>
+            </div>
+            <div class="options">
+                <label><input type="checkbox" name="smooth"> Smooth</label>
+                <label><input type="checkbox" name="measure_error"> Measure Error</label>
+                <label>Border Mode:
+                    <select name="border_mode">
+                        <option value="tight">Tight</option>
+                        <option value="inside">Inside</option>
+                        <option value="outside">Outside</option>
+                    </select>
+                </label>
+            </div>
+            <button type="submit">Upload</button>
+        </form>
+        <div id="status"></div>
+        <div id="results"></div>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>
