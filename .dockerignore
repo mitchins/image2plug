@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+pip-log.txt
+.pytest_cache
+
+# Local development
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# Development files
+setup-conda.sh
+requirements.txt
+requirements-web.txt
+
+# Runtime directories (will be mounted as volumes)
+db/
+uploads/
+web_results/
+
+# Build artifacts
+results/
+debug_proc_qr.png
+image2plug_web.log
+
+# Test files
+tests/
+outputs/
+
+# Old files
+*.old

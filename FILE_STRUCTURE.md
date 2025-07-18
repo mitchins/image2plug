@@ -13,8 +13,19 @@
   - `job/compat.py` - Compatibility utilities
   - `job/tests/` - Test package directory
 
+### 🌐 Web Application
+- `web_server.py` - **FastAPI web server with integrated daemon**
+- `static/index.html` - **Material UI frontend interface**
+- `static/app.js` - **JavaScript application logic**
+- `environment.yml` - **Conda environment specification**
+- `Dockerfile` - **Single container deployment (conda-based)**
+- `docker-compose.yml` - **Development setup**
+- `setup-conda.sh` - **Conda environment setup script**
+- `start.sh` - **Easy deployment script**
+
 ### 📚 Documentation
 - `JOB_SYSTEM.md` - **Comprehensive job system documentation**
+- `DEPLOYMENT.md` - **Web deployment and Cloudflare setup guide**
 - `README.md` - **Updated with job system section**
 - `FILE_STRUCTURE.md` - This file
 

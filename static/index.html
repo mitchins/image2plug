@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>image2plug - Photo to DXF Converter</title>
+    
+    <!-- Material UI CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://unpkg.com/@mui/material@latest/umd/material-ui.production.min.css" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #1976d2;
+            margin-bottom: 16px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 48px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 24px;
+        }
+        
+        .card h2 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+            color: #1976d2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 48px 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: #1976d2;
+            background-color: #f3f7ff;
+        }
+        
+        .upload-area.dragover {
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #ccc;
+            margin-bottom: 16px;
+        }
+        
+        .upload-area.dragover .upload-icon {
+            color: #1976d2;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn:hover {
+            background-color: #1565c0;
+        }
+        
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background-color: transparent;
+            color: #1976d2;
+            border: 1px solid #1976d2;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #f3f7ff;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+        
+        .job-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .job-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s ease;
+        }
+        
+        .job-item:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .job-item:last-child {
+            border-bottom: none;
+        }
+        
+        .job-info {
+            flex: 1;
+        }
+        
+        .job-id {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .job-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-running {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+        
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .job-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #1976d2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 16px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 500;
+            color: #1976d2;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: #666;
+        }
+        
+        .empty-state .material-icons {
+            font-size: 64px;
+            color: #ddd;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>image2plug</h1>
+            <p>Convert photos of holes and cutouts into precise DXF files and 3D models for fabrication</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Job Submission -->
+            <div class="card">
+                <h2>
+                    <span class="material-icons">upload</span>
+                    Submit New Job
+                </h2>
+                
+                <form id="jobForm">
+                    <!-- File Upload -->
+                    <div class="upload-area" id="uploadArea">
+                        <div class="material-icons upload-icon">cloud_upload</div>
+                        <p>Drop an image here or <strong>click to browse</strong></p>
+                        <p style="font-size: 12px; color: #666; margin-top: 8px;">
+                            Supports JPG, PNG (max 50MB)
+                        </p>
+                    </div>
+                    <input type="file" id="fileInput" class="file-input" accept="image/*" required>
+                    
+                    <!-- Processing Options -->
+                    <div class="form-group">
+                        <label for="extrudeHeight">Extrusion Height (mm)</label>
+                        <input type="number" id="extrudeHeight" value="10.0" min="0.1" max="100" step="0.1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="borderMode">Border Mode</label>
+                        <select id="borderMode">
+                            <option value="tight">Tight - Follow visible contour</option>
+                            <option value="inside">Inside - Slightly smaller</option>
+                            <option value="outside">Outside - Slightly larger</option>
+                        </select>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="proof" checked>
+                        <label for="proof">Generate proof report</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="smooth">
+                        <label for="smooth">Smooth contours</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="measureError">
+                        <label for="measureError">Measure smoothing error</label>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="submitBtn">
+                        Submit Job
+                    </button>
+                </form>
+                
+                <div id="submitStatus"></div>
+            </div>
+
+            <!-- Job Queue -->
+            <div class="card">
+                <h2>
+                    <span class="material-icons">list</span>
+                    Your Job Queue
+                    <span id="refreshSpinner" class="loading" style="display: none; margin-left: 12px;"></span>
+                </h2>
+                
+                <p style="font-size: 12px; color: #666; margin-bottom: 16px; background: #f8f9fa; padding: 8px; border-radius: 4px;">
+                    <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">lock</span>
+                    For privacy, only your own jobs are shown. Your session is private and secure.
+                </p>
+                
+                <!-- Queue Stats -->
+                <div class="stats-grid" id="statsGrid">
+                    <!-- Stats will be populated by JavaScript -->
+                </div>
+                
+                <!-- Job List -->
+                <div class="job-list" id="jobList">
+                    <!-- Jobs will be populated by JavaScript -->
+                </div>
+                
+                <button class="btn-secondary btn" onclick="refreshJobs()">
+                    <span class="material-icons" style="font-size: 16px; margin-right: 4px;">refresh</span>
+                    Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
