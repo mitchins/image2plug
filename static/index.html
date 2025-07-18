@@ -335,49 +335,140 @@
           display: block;
           margin-bottom: 16px;
         }
+        .marker-icon {
+          width: 64px;
+          height: auto;
+        }
+        /* Marker download button */
+        .marker-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 16px;
+          background: none;
+          border: 1px solid #1976d2;
+          border-radius: 4px;
+          cursor: pointer;
+          text-decoration: none;
+          color: #1976d2;
+          transition: background-color 0.2s;
+        }
+        .marker-btn img {
+          width: 50px;
+          height: auto;
+        }
+        .marker-btn .material-icons {
+          font-size: 20px;
+        }
+        .marker-btn:hover {
+          background-color: #f3f7ff;
+        }
+        /* Help modal styles */
+        .help-btn {
+          position: absolute;
+          top: 24px;
+          right: 24px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 24px;
+        }
+        .modal {
+          display: none;
+          position: fixed;
+          z-index: 1001;
+          left: 0; top: 0;
+          width: 100%; height: 100%;
+          background: rgba(0,0,0,0.5);
+          padding: 80px 16px;
+          box-sizing: border-box;
+          justify-content: center;
+          /* align-items removed */
+        }
+        .modal-content {
+          background: white;
+          border-radius: 8px;
+          max-width: 600px;
+          width: calc(100% - 32px);
+          max-height: calc(100vh - 160px);
+          overflow-y: auto;
+          padding: 24px;
+          position: relative;
+        }
+        .modal-content:focus {
+          outline: none;
+        }
+        .modal-close {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 20px;
+          color: #666;
+        }
+        .modal-close {
+          font-size: 24px;
+          color: #333;
+        }
+        .modal-content > img {
+          width: 100%;
+          height: auto;
+          border-radius: 4px;
+          margin-bottom: 16px;
+        }
+        /* Navbar styles */
+        .navbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background-color: #1976d2;
+          color: white;
+          padding: 0 24px;
+          height: 64px;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          z-index: 1000;
+        }
+        .navbar .title {
+          font-size: 1.5rem;
+          font-weight: 500;
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+        .navbar .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        /* Ensure help icon is visible on dark navbar */
+        .navbar .help-btn {
+          color: white;
+        }
+        /* Adjust container to account for fixed navbar */
+        .container {
+          padding-top: 80px;
+        }
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="title">image2plug</div>
+      <div class="nav-actions">
+        <button id="helpBtn" class="help-btn" aria-label="Help">
+          <span class="material-icons">help_outline</span>
+        </button>
+      </div>
+    </nav>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>image2plug</h1>
-            <p>Convert photos of holes and cutouts into precise DXF files and 3D models for fabrication</p>
-        </div>
 
         <!-- Main Content -->
         <div class="main-content">
-          <!-- Quickstart Instructions -->
-          <div class="card">
-            <h2>
-              <span class="material-icons">menu_book</span>
-              Quickstart Instructions
-            </h2>
-            <img
-              src="/static/quickstart.png"
-              alt="Quickstart Instructions"
-              class="responsive-img"
-              onclick="window.open('/static/quickstart.png', '_blank')"
-            />
-          </div>
-          <!-- ArUco Marker -->
-          <div class="card">
-            <h2>
-              <span class="material-icons">crop_free</span>
-              ArUco Marker
-            </h2>
-            <p>Print this marker at 30 mm size:</p>
-            <img
-              src="/static/aruco_marker_30mm.png"
-              alt="ArUco Marker"
-              class="marker-img"
-            />
-            <p>
-              <a href="/static/aruco_marker_30mm.png" download class="btn btn-secondary">
-                Download Marker
-              </a>
-            </p>
-          </div>
             <!-- Job Submission -->
             <div class="card">
                 <h2>
@@ -465,6 +556,55 @@
         </div>
     </div>
 
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal" role="dialog" aria-labelledby="modalTitle">
+      <div class="modal-content" tabindex="0">
+        <div class="modal-header"></div>
+        <button class="modal-close" id="closeModal" aria-label="Close">
+          <span class="material-icons">close</span>
+        </button>
+        <h2 id="modalTitle">Getting Started</h2>
+        <h3>Quickstart Instructions</h3>
+        <img src="/static/quickstart.png" alt="Quickstart Instructions (marker placed next to hole)">
+        <h3>Download Marker(s)</h3>
+        <a href="/static/aruco_marker_30mm.png" download class="marker-btn" title="Download ArUco Marker (30 mm)">
+          <img src="/static/aruco_marker_30mm.png" alt="ArUco Marker">
+          <span>ArUco Marker (30 mm)</span>
+          <span class="material-icons">file_download</span>
+        </a>
+      </div>
+    </div>
+    <script>
+      document.getElementById('helpBtn').addEventListener('click', () => {
+        const modal = document.getElementById('helpModal');
+        modal.style.display = 'flex';
+        const content = modal.querySelector('.modal-content');
+        content.focus();
+      });
+      document.getElementById('closeModal').addEventListener('click', () => {
+        document.getElementById('helpModal').style.display = 'none';
+      });
+      window.addEventListener('click', e => {
+        if (e.target.id === 'helpModal') {
+          document.getElementById('helpModal').style.display = 'none';
+        }
+      });
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && document.getElementById('helpModal').style.display === 'flex') {
+          document.getElementById('helpModal').style.display = 'none';
+        }
+      });
+      // Auto-show help modal on first load
+      document.addEventListener('DOMContentLoaded', () => {
+        const hasSeenHelp = localStorage.getItem('helpShown');
+        if (!hasSeenHelp) {
+          const modal = document.getElementById('helpModal');
+          modal.style.display = 'flex';
+          modal.querySelector('.modal-content').focus();
+          localStorage.setItem('helpShown', 'true');
+        }
+      });
+    </script>
     <script src="/static/app.js"></script>
 </body>
 </html>
