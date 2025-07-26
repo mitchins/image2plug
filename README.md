@@ -85,7 +85,7 @@ For best results, capture your images with the following considerations in mind.
 
 - **OpenCV:** For image straightening, edge detection, and contour finding.
 - **ezdxf:** For creating the DXF files.
-- **solidpython (or pure text):** For generating OpenSCAD scripts.
+- **OpenSCAD:** For rendering and exporting STL files from generated scripts.
 - **Optional:** `pyzbar`, `opencv-aruco`, or other libraries to detect scaling markers.
 
 ---
